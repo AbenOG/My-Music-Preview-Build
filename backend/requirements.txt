@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+mutagen
+watchdog
+websockets
+python-multipart
+aiofiles
+pydantic-settings
+httpx
+musicbrainzngs

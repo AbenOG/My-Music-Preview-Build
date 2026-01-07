@@ -1,0 +1,96 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+env/
+backend/venv/
+
+# Database & data files (start fresh)
+backend/data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache directories
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.cache/
+*.cache
+
+# IDE and editor files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*.sw?
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.claude/
+
+# Miscellaneous tool caches
+.verdent/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.env
+
+# Temporary files
+*.tmp
+*.temp
+a.txt
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db

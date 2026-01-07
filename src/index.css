@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  --color-background: #121212;
+  --color-surface: #181818;
+  --color-surface-hover: #232323;
+  --color-primary: #e11d48;
+  /* Pink-600 ish */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a1a1aa;
+  /* Zinc-400 */
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  overflow: hidden;
+  /* Prevent body scroll, handle in layout */
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+@keyframes equalizer-1 {
+  0%, 100% { height: 0.25rem; }
+  25% { height: 0.75rem; }
+  50% { height: 1rem; }
+  75% { height: 0.5rem; }
+}
+
+@keyframes equalizer-2 {
+  0%, 100% { height: 0.5rem; }
+  25% { height: 1rem; }
+  50% { height: 0.25rem; }
+  75% { height: 0.75rem; }
+}
+
+@keyframes equalizer-3 {
+  0%, 100% { height: 0.75rem; }
+  25% { height: 0.25rem; }
+  50% { height: 0.5rem; }
+  75% { height: 1rem; }
+}
+
+@keyframes equalizer-4 {
+  0%, 100% { height: 0.5rem; }
+  33% { height: 1rem; }
+  66% { height: 0.25rem; }
+}
+
+.animate-equalizer-1 {
+  animation: equalizer-1 0.5s ease-in-out infinite;
+}
+
+.animate-equalizer-2 {
+  animation: equalizer-2 0.6s ease-in-out infinite;
+}
+
+.animate-equalizer-3 {
+  animation: equalizer-3 0.45s ease-in-out infinite;
+}
+
+.animate-equalizer-4 {
+  animation: equalizer-4 0.55s ease-in-out infinite;
+}
+
+@keyframes highlight-flash {
+  0% {
+    background-color: rgba(236, 72, 153, 0);
+    box-shadow: inset 0 0 0 0 rgba(236, 72, 153, 0);
+  }
+  20% {
+    background-color: rgba(236, 72, 153, 0.3);
+    box-shadow: inset 0 0 0 1px rgba(236, 72, 153, 0.5);
+  }
+  100% {
+    background-color: rgba(236, 72, 153, 0);
+    box-shadow: inset 0 0 0 0 rgba(236, 72, 153, 0);
+  }
+}
+
+.animate-highlight-flash {
+  animation: highlight-flash 1s ease-out forwards;
+}
