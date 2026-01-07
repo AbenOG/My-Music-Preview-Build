@@ -28,6 +28,9 @@
 
 ## Overview
 
+<img src="https://i.ibb.co/6JtBDy04/mymusic.png" alt="mymusic">
+<img src="https://i.ibb.co/8g9bHpF3/mymusic2.png" alt="mymusic2">
+
 MyMusic is an open-source, local-first music player that brings a Spotify-like experience to your personal music collection. It scans your local music folders, extracts rich metadata, and presents everything in a sleek, modern interface.
 
 **Why MyMusic?**
