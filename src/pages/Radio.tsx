@@ -468,11 +468,12 @@ function BrowseTab({
                 <select
                     value={selectedCountry}
                     onChange={(e) => onSelectCountry(e.target.value)}
-                    className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-pink-500/50"
+                    className="px-4 py-2 bg-zinc-900 border border-white/10 rounded-lg text-white focus:outline-none focus:border-pink-500/50 cursor-pointer"
+                    style={{ colorScheme: 'dark' }}
                 >
-                    <option value="">Select a country...</option>
+                    <option value="" className="bg-zinc-900 text-white">Select a country...</option>
                     {countries.map(c => (
-                        <option key={c.name} value={c.name}>
+                        <option key={c.name} value={c.name} className="bg-zinc-900 text-white">
                             {c.name} ({c.station_count.toLocaleString()} stations)
                         </option>
                     ))}

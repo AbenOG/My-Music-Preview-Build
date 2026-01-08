@@ -103,11 +103,11 @@ def get_similar_albums(db: Session, album_name: str, limit: int = 10) -> List[Di
     album_tracks = db.query(Track).filter(Track.album == album_name).first()
     if not album_tracks:
         return []
-    
+
     artist = album_tracks.artist
     genre = album_tracks.genre
     decade = album_tracks.decade
-    
+
     similar_query = db.query(
         Track.album,
         Track.artist,
@@ -117,18 +117,18 @@ def get_similar_albums(db: Session, album_name: str, limit: int = 10) -> List[Di
         Track.album != album_name,
         Track.album.isnot(None)
     )
-    
+
     if artist:
         similar_query = similar_query.filter(
             (Track.artist == artist) | (Track.genre == genre)
         )
     elif genre:
         similar_query = similar_query.filter(Track.genre == genre)
-    
+
     similar_albums = similar_query.group_by(
         Track.album, Track.artist
     ).order_by(desc('track_count')).limit(limit).all()
-    
+
     return [
         {
             "album": a.album,
@@ -138,3 +138,121 @@ def get_similar_albums(db: Session, album_name: str, limit: int = 10) -> List[Di
         }
         for a in similar_albums
     ]
+
+
+def get_radio_tracks(
+    db: Session,
+    seed_track: Track,
+    limit: int = 40,
+    exclude_ids: List[int] = None
+) -> List[Track]:
+    """
+    Generate radio-style recommendations based on a seed track.
+    Uses a scoring system to find similar tracks with variety.
+
+    Scoring:
+    - Same artist: +50 points
+    - Same genre: +30 points
+    - Same decade: +20 points
+    - Same mood: +15 points
+    - Liked track: +25 points
+    """
+    import random
+
+    if exclude_ids is None:
+        exclude_ids = []
+
+    # Always exclude the seed track
+    exclude_ids = list(set(exclude_ids + [seed_track.id]))
+
+    # Get liked track IDs for bonus scoring
+    liked_ids = set(
+        lid[0] for lid in db.query(LikedSong.track_id).all()
+    )
+
+    # Get all available tracks
+    all_tracks = db.query(Track).filter(
+        Track.id.notin_(exclude_ids)
+    ).all()
+
+    if not all_tracks:
+        return []
+
+    # Score each track
+    scored_tracks = []
+    for track in all_tracks:
+        score = 0
+
+        # Same artist: +50 points
+        if track.artist and track.artist == seed_track.artist:
+            score += 50
+
+        # Same genre: +30 points
+        if track.genre and track.genre == seed_track.genre:
+            score += 30
+
+        # Same decade: +20 points
+        if track.decade and track.decade == seed_track.decade:
+            score += 20
+
+        # Same mood: +15 points
+        if track.mood and track.mood == seed_track.mood:
+            score += 15
+
+        # Liked track: +25 points
+        if track.id in liked_ids:
+            score += 25
+
+        # Only include tracks with some relevance (score > 0)
+        # or add some random tracks for variety
+        if score > 0:
+            scored_tracks.append((track, score))
+
+    # If not enough scored tracks, add some random ones
+    if len(scored_tracks) < limit:
+        random_tracks = [t for t in all_tracks if not any(st[0].id == t.id for st in scored_tracks)]
+        random.shuffle(random_tracks)
+        for track in random_tracks[:limit - len(scored_tracks)]:
+            scored_tracks.append((track, 5))  # Base score for variety
+
+    # Sort by score (descending) then shuffle within score tiers for variety
+    scored_tracks.sort(key=lambda x: x[1], reverse=True)
+
+    # Group by score tiers and shuffle within each tier
+    result = []
+    current_tier = []
+    current_score = None
+
+    for track, score in scored_tracks:
+        if current_score is None:
+            current_score = score
+
+        if score == current_score:
+            current_tier.append(track)
+        else:
+            random.shuffle(current_tier)
+            result.extend(current_tier)
+            current_tier = [track]
+            current_score = score
+
+    # Don't forget the last tier
+    if current_tier:
+        random.shuffle(current_tier)
+        result.extend(current_tier)
+
+    # Limit to avoid too many from same artist clustering at the top
+    # Take tracks but ensure variety
+    final_result = []
+    artist_counts = {}
+    max_per_artist = max(5, limit // 8)  # At most ~5 tracks per artist for a 40-track playlist
+
+    for track in result:
+        artist = track.artist or "Unknown"
+        if artist_counts.get(artist, 0) < max_per_artist:
+            final_result.append(track)
+            artist_counts[artist] = artist_counts.get(artist, 0) + 1
+
+        if len(final_result) >= limit:
+            break
+
+    return final_result

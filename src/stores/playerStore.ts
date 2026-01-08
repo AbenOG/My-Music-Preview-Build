@@ -4,6 +4,7 @@ import type { Track, RepeatMode } from '../types';
 import { getStreamUrl } from '../api/client';
 import { tracksApi } from '../api/tracks';
 import { playerApi } from '../api/player';
+import { playlistsApi } from '../api/playlists';
 
 export interface RadioStation {
   id?: number;
@@ -36,8 +37,14 @@ interface PlayerStore {
   repeatMode: RepeatMode;
   isRadioMode: boolean;
   radioSeedTrack: Track | null;
+  radioPlaylistId: number | null;
 
   audioElement: HTMLAudioElement | null;
+
+  // Audio processing settings
+  limiterEnabled: boolean;
+  limiterCeiling: number;  // dB: -0.1, -1, -3
+  targetLufs: number;      // LUFS: -14, -16, -23
 
   setAudioElement: (element: HTMLAudioElement | null) => void;
   play: (track?: Track, queue?: Track[], index?: number) => void;
@@ -75,6 +82,9 @@ interface PlayerStore {
   
   normalizationEnabled: boolean;
   toggleNormalization: () => void;
+  toggleLimiter: () => void;
+  setLimiterCeiling: (ceiling: number) => void;
+  setTargetLufs: (lufs: number) => void;
 }
 
 const shuffleArray = <T>(array: T[]): T[] => {
@@ -84,6 +94,15 @@ const shuffleArray = <T>(array: T[]): T[] => {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
+};
+
+const shuffleWithCurrentFirst = <T extends { id: number }>(
+  array: T[],
+  currentItem: T | null
+): T[] => {
+  if (!currentItem) return shuffleArray(array);
+  const others = array.filter(t => t.id !== currentItem.id);
+  return [currentItem, ...shuffleArray(others)];
 };
 
 export const usePlayerStore = create<PlayerStore>()(
@@ -109,7 +128,11 @@ export const usePlayerStore = create<PlayerStore>()(
     repeatMode: 'none',
     isRadioMode: false,
     radioSeedTrack: null,
+    radioPlaylistId: null,
     normalizationEnabled: true,
+    limiterEnabled: true,
+    limiterCeiling: -1,    // -1 dB default
+    targetLufs: -14,       // Spotify standard
 
     audioElement: null,
 
@@ -137,13 +160,28 @@ export const usePlayerStore = create<PlayerStore>()(
     play: (track, queue, index) => {
       const state = get();
       const audio = state.audioElement;
-      
+
       if (track) {
         if (queue) {
-          set({ 
-            queue, 
-            originalQueue: queue,
-            queueIndex: index ?? 0,
+          // Always store the original queue order
+          const originalQueue = [...queue];
+
+          let finalQueue: Track[];
+          let finalIndex: number;
+
+          if (state.shuffleEnabled) {
+            // Shuffle the queue, keeping current track at position 0
+            finalQueue = shuffleWithCurrentFirst(queue, track);
+            finalIndex = 0;
+          } else {
+            finalQueue = queue;
+            finalIndex = index ?? 0;
+          }
+
+          set({
+            queue: finalQueue,
+            originalQueue: originalQueue,
+            queueIndex: finalIndex,
             isRadioMode: false,
             radioSeedTrack: null,
             currentRadioStation: null,
@@ -160,8 +198,7 @@ export const usePlayerStore = create<PlayerStore>()(
           audio.load();
           audio.play().catch(console.error);
         }
-
-        tracksApi.logPlay(track.id).catch(console.error);
+        // Note: logPlay is now called from useAudioPlayer when audio actually starts
       } else if (audio && state.currentTrack) {
         if (!audio.src || audio.src === '') {
           set({ isLoading: true });
@@ -183,6 +220,9 @@ export const usePlayerStore = create<PlayerStore>()(
         } else {
           audio.play().catch(console.error);
         }
+      } else if (audio && state.currentRadioStation) {
+        // Resume radio station stream
+        audio.play().catch(console.error);
       }
     },
 
@@ -322,37 +362,74 @@ export const usePlayerStore = create<PlayerStore>()(
     setIsLoading: (loading) => set({ isLoading: loading }),
 
     setQueue: (tracks, startIndex = 0) => {
-      set({ 
-        queue: tracks, 
-        originalQueue: tracks,
-        queueIndex: startIndex 
+      const state = get();
+      const originalQueue = [...tracks];
+
+      let finalQueue: Track[];
+      let finalIndex: number;
+
+      if (state.shuffleEnabled && tracks.length > 0) {
+        const currentTrack = tracks[startIndex];
+        finalQueue = shuffleWithCurrentFirst(tracks, currentTrack);
+        finalIndex = 0;
+      } else {
+        finalQueue = tracks;
+        finalIndex = startIndex;
+      }
+
+      set({
+        queue: finalQueue,
+        originalQueue: originalQueue,
+        queueIndex: finalIndex
       });
     },
 
     addToQueue: (track) => {
-      const { queue } = get();
-      set({ queue: [...queue, track] });
+      const { queue, originalQueue } = get();
+      set({
+        queue: [...queue, track],
+        originalQueue: [...originalQueue, track]
+      });
     },
 
     playNext: (track) => {
-      const { queue, queueIndex } = get();
+      const { queue, queueIndex, originalQueue, currentTrack } = get();
+
+      // Add to shuffled queue right after current position
       const newQueue = [...queue];
       newQueue.splice(queueIndex + 1, 0, track);
-      set({ queue: newQueue });
+
+      // Add to original queue after the current track's position
+      const newOriginalQueue = [...originalQueue];
+      if (currentTrack) {
+        const originalIndex = originalQueue.findIndex(t => t.id === currentTrack.id);
+        if (originalIndex >= 0) {
+          newOriginalQueue.splice(originalIndex + 1, 0, track);
+        } else {
+          newOriginalQueue.push(track);
+        }
+      } else {
+        newOriginalQueue.push(track);
+      }
+
+      set({ queue: newQueue, originalQueue: newOriginalQueue });
     },
 
     removeFromQueue: (index) => {
-      const { queue, queueIndex } = get();
+      const { queue, queueIndex, originalQueue } = get();
+      const trackToRemove = queue[index];
+
       const newQueue = queue.filter((_, i) => i !== index);
-      
+      const newOriginalQueue = originalQueue.filter(t => t.id !== trackToRemove?.id);
+
       let newIndex = queueIndex;
       if (index < queueIndex) {
         newIndex = queueIndex - 1;
       } else if (index === queueIndex && index >= newQueue.length) {
         newIndex = Math.max(0, newQueue.length - 1);
       }
-      
-      set({ queue: newQueue, queueIndex: newIndex });
+
+      set({ queue: newQueue, originalQueue: newOriginalQueue, queueIndex: newIndex });
     },
 
     clearQueue: () => {
@@ -398,27 +475,52 @@ export const usePlayerStore = create<PlayerStore>()(
     },
 
     generateSmartQueue: async () => {
-      const { currentTrack, allTracks, queue } = get();
+      const { currentTrack, allTracks, queue, isRadioMode, radioPlaylistId, radioSeedTrack } = get();
       if (!currentTrack || allTracks.length === 0) return;
 
+      // If in radio mode with a backend playlist, extend via API
+      if (isRadioMode && radioPlaylistId && radioSeedTrack) {
+        try {
+          const queuedIds = queue.map(t => t.id);
+          const newTracks = await playlistsApi.extendRadio(
+            radioPlaylistId,
+            radioSeedTrack.id,
+            queuedIds,
+            20
+          );
+
+          if (newTracks && newTracks.length > 0) {
+            set({
+              queue: [...queue, ...newTracks],
+              originalQueue: [...queue, ...newTracks]
+            });
+          }
+          return;
+        } catch (error) {
+          console.error('Failed to extend radio playlist:', error);
+          // Fall through to local generation
+        }
+      }
+
+      // Local fallback for non-radio mode or when API fails
       const queuedIds = new Set(queue.map(t => t.id));
       const availableTracks = allTracks.filter(t => !queuedIds.has(t.id) && t.id !== currentTrack.id);
-      
+
       if (availableTracks.length === 0) return;
 
       const smartQueue: Track[] = [];
-      
+
       const sameArtist = shuffleArray(
         availableTracks.filter(t => t.artist === currentTrack.artist)
       ).slice(0, 8);
       smartQueue.push(...sameArtist);
 
       const usedIds = new Set(smartQueue.map(t => t.id));
-      
+
       if (currentTrack.genre) {
         const sameGenre = shuffleArray(
-          availableTracks.filter(t => 
-            t.genre === currentTrack.genre && 
+          availableTracks.filter(t =>
+            t.genre === currentTrack.genre &&
             !usedIds.has(t.id)
           )
         ).slice(0, 8);
@@ -428,8 +530,8 @@ export const usePlayerStore = create<PlayerStore>()(
 
       if (currentTrack.album) {
         const sameAlbum = shuffleArray(
-          availableTracks.filter(t => 
-            t.album === currentTrack.album && 
+          availableTracks.filter(t =>
+            t.album === currentTrack.album &&
             !usedIds.has(t.id)
           )
         ).slice(0, 4);
@@ -449,49 +551,83 @@ export const usePlayerStore = create<PlayerStore>()(
     },
 
     startRadio: async (seedTrack: Track) => {
-      const { allTracks, play } = get();
-      if (allTracks.length === 0) return;
+      const { play } = get();
 
-      const availableTracks = allTracks.filter(t => t.id !== seedTrack.id);
-      const radioQueue: Track[] = [seedTrack];
+      try {
+        // Generate radio playlist via backend API
+        const playlist = await playlistsApi.generateRadio(seedTrack.id, 40);
 
-      const sameArtist = shuffleArray(
-        availableTracks.filter(t => t.artist === seedTrack.artist)
-      ).slice(0, 10);
-      radioQueue.push(...sameArtist);
+        // Extract tracks from playlist response
+        const radioQueue = playlist.tracks || [];
 
-      const usedIds = new Set(radioQueue.map(t => t.id));
+        if (radioQueue.length === 0) {
+          console.error('Radio playlist generated with no tracks');
+          return;
+        }
 
-      if (seedTrack.genre) {
-        const sameGenre = shuffleArray(
-          availableTracks.filter(t => 
-            t.genre === seedTrack.genre && 
-            !usedIds.has(t.id)
-          )
-        ).slice(0, 15);
-        radioQueue.push(...sameGenre);
-        sameGenre.forEach(t => usedIds.add(t.id));
+        set({
+          isRadioMode: true,
+          radioSeedTrack: seedTrack,
+          radioPlaylistId: playlist.id,
+          queue: radioQueue,
+          originalQueue: radioQueue,
+          queueIndex: 0
+        });
+
+        // Start playing the first track (seed track)
+        play(radioQueue[0]);
+
+        // Trigger library refresh to show the new playlist in sidebar
+        // This is done by dispatching a custom event that libraryStore can listen to
+        window.dispatchEvent(new CustomEvent('radio-playlist-created'));
+      } catch (error) {
+        console.error('Failed to generate radio playlist:', error);
+        // Fallback to local generation if backend fails
+        const { allTracks } = get();
+        if (allTracks.length === 0) return;
+
+        const availableTracks = allTracks.filter(t => t.id !== seedTrack.id);
+        const radioQueue: Track[] = [seedTrack];
+
+        const sameArtist = shuffleArray(
+          availableTracks.filter(t => t.artist === seedTrack.artist)
+        ).slice(0, 10);
+        radioQueue.push(...sameArtist);
+
+        const usedIds = new Set(radioQueue.map(t => t.id));
+
+        if (seedTrack.genre) {
+          const sameGenre = shuffleArray(
+            availableTracks.filter(t =>
+              t.genre === seedTrack.genre &&
+              !usedIds.has(t.id)
+            )
+          ).slice(0, 15);
+          radioQueue.push(...sameGenre);
+          sameGenre.forEach(t => usedIds.add(t.id));
+        }
+
+        if (seedTrack.album) {
+          const sameAlbum = shuffleArray(
+            availableTracks.filter(t =>
+              t.album === seedTrack.album &&
+              !usedIds.has(t.id)
+            )
+          ).slice(0, 5);
+          radioQueue.push(...sameAlbum);
+        }
+
+        set({
+          isRadioMode: true,
+          radioSeedTrack: seedTrack,
+          radioPlaylistId: null,
+          queue: radioQueue,
+          originalQueue: radioQueue,
+          queueIndex: 0
+        });
+
+        play(seedTrack);
       }
-
-      if (seedTrack.album) {
-        const sameAlbum = shuffleArray(
-          availableTracks.filter(t => 
-            t.album === seedTrack.album && 
-            !usedIds.has(t.id)
-          )
-        ).slice(0, 5);
-        radioQueue.push(...sameAlbum);
-      }
-
-      set({
-        isRadioMode: true,
-        radioSeedTrack: seedTrack,
-        queue: radioQueue,
-        originalQueue: radioQueue,
-        queueIndex: 0
-      });
-
-      play(seedTrack);
     },
 
     stopRadio: () => {
@@ -503,6 +639,7 @@ export const usePlayerStore = create<PlayerStore>()(
       set({
         isRadioMode: false,
         radioSeedTrack: null,
+        radioPlaylistId: null,
         currentRadioStation: null,
         isPlaying: false
       });
@@ -510,6 +647,18 @@ export const usePlayerStore = create<PlayerStore>()(
 
     toggleNormalization: () => {
       set((state) => ({ normalizationEnabled: !state.normalizationEnabled }));
+    },
+
+    toggleLimiter: () => {
+      set((state) => ({ limiterEnabled: !state.limiterEnabled }));
+    },
+
+    setLimiterCeiling: (ceiling: number) => {
+      set({ limiterCeiling: ceiling });
+    },
+
+    setTargetLufs: (lufs: number) => {
+      set({ targetLufs: lufs });
     },
 
     saveState: async () => {
@@ -565,6 +714,11 @@ export const usePlayerStore = create<PlayerStore>()(
           repeatMode: state.repeatMode,
           isRadioMode: state.isRadioMode,
           radioSeedTrack: state.radioSeedTrack,
+          radioPlaylistId: state.radioPlaylistId,
+          normalizationEnabled: state.normalizationEnabled,
+          limiterEnabled: state.limiterEnabled,
+          limiterCeiling: state.limiterCeiling,
+          targetLufs: state.targetLufs,
         }),
       }
     )

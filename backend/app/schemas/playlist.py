@@ -21,6 +21,16 @@ class PlaylistTrackAdd(BaseModel):
 class PlaylistReorder(BaseModel):
     track_ids: List[int]
 
+
+class PlaylistTracksAdd(BaseModel):
+    track_ids: List[int]
+
+
+class PlaylistExtend(BaseModel):
+    seed_track_id: int
+    exclude_ids: List[int] = []
+    limit: int = 20
+
 class PlaylistResponse(PlaylistBase):
     id: int
     cover_path: Optional[str] = None

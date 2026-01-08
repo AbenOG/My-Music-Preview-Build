@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Play, Shuffle, Disc } from 'lucide-react';
+import { Play, Shuffle, Disc, Heart } from 'lucide-react';
 import { albumsApi } from '../api/albums';
 import { usePlayerStore } from '../stores/playerStore';
+import { useLibraryStore } from '../stores/libraryStore';
 import { TrackList } from '../components/ui/TrackList';
 import { getArtworkUrl } from '../api/client';
 import type { Album } from '../types';
+import { cn } from '../lib/utils';
 
 function formatDuration(ms: number): string {
     const minutes = Math.floor(ms / 60000);
@@ -28,6 +30,14 @@ export function AlbumDetail() {
     const highlightTrackId = searchParams.get('highlight');
 
     const { play } = usePlayerStore();
+    const { toggleSaveAlbum, savedAlbumKeys } = useLibraryStore();
+    const isSaved = album ? savedAlbumKeys.has(`${album.name}|${album.artist || ''}`) : false;
+
+    const handleToggleSave = () => {
+        if (album) {
+            toggleSaveAlbum(album.name, album.artist);
+        }
+    };
 
     useEffect(() => {
         if (albumName) {
@@ -143,12 +153,22 @@ export function AlbumDetail() {
                 >
                     <Play className="w-6 h-6 fill-current ml-1" />
                 </button>
-                <button 
+                <button
                     onClick={handleShufflePlay}
                     disabled={!album.tracks || album.tracks.length === 0}
                     className="w-12 h-12 rounded-full border border-white/20 text-white flex items-center justify-center hover:bg-white/10 transition-colors disabled:opacity-50"
                 >
                     <Shuffle className="w-5 h-5" />
+                </button>
+                <button
+                    onClick={handleToggleSave}
+                    className={cn(
+                        "w-12 h-12 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 transition-colors",
+                        isSaved && "text-pink-500 border-pink-500/50"
+                    )}
+                    title={isSaved ? "Remove from saved albums" : "Save album"}
+                >
+                    <Heart className={cn("w-5 h-5", isSaved && "fill-current")} />
                 </button>
             </div>
 

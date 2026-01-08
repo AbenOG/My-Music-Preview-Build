@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { usePlayerStore } from '../stores/playerStore';
 import { useLibraryStore } from '../stores/libraryStore';
+import { useNotificationStore } from '../stores/notificationStore';
 import type { WebSocketMessage } from '../types';
 
 // Use relative URL to go through Vite proxy (avoids CORS issues)
@@ -16,41 +17,87 @@ export function useWebSocket() {
 
   const { togglePlay, next, previous } = usePlayerStore();
   const { updateScanProgress, fetchAll, setIsScanning } = useLibraryStore();
+  const {
+    setFilesDetected,
+    setAutoScanStarted,
+    setAutoScanProgress,
+    setAutoScanComplete,
+  } = useNotificationStore();
 
   const handleMessage = useCallback((event: MessageEvent) => {
     try {
       const message: WebSocketMessage = JSON.parse(event.data);
-      
+
       switch (message.type) {
         case 'media_key':
           if (message.key === 'play_pause') togglePlay();
           else if (message.key === 'next') next();
           else if (message.key === 'previous') previous();
           break;
-          
+
         case 'scan_progress':
           updateScanProgress(message.data);
           break;
-          
+
         case 'scan_complete':
           setIsScanning(false);
           fetchAll();
           break;
-          
+
         case 'library_updated':
           fetchAll();
           break;
-          
+
+        case 'files_detected':
+          setFilesDetected(message.data.count, message.data.folder_name);
+          break;
+
+        case 'auto_scan_started':
+          setAutoScanStarted({
+            total: message.data.total,
+            folderName: message.data.folder_name,
+          });
+          break;
+
+        case 'auto_scan_progress':
+          setAutoScanProgress({
+            processed: message.data.processed,
+            total: message.data.total,
+            currentFile: message.data.current_file,
+            progress: message.data.progress,
+          });
+          break;
+
+        case 'auto_scan_complete':
+          setAutoScanComplete({
+            added: message.data.added,
+            total: message.data.total,
+            errors: message.data.errors,
+            folderName: message.data.folder_name,
+          });
+          break;
+
         case 'pong':
           break;
-          
+
         default:
           console.log('Unknown WebSocket message:', message);
       }
     } catch (error) {
       console.error('Failed to parse WebSocket message:', error);
     }
-  }, [togglePlay, next, previous, updateScanProgress, fetchAll, setIsScanning]);
+  }, [
+    togglePlay,
+    next,
+    previous,
+    updateScanProgress,
+    fetchAll,
+    setIsScanning,
+    setFilesDetected,
+    setAutoScanStarted,
+    setAutoScanProgress,
+    setAutoScanComplete,
+  ]);
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {

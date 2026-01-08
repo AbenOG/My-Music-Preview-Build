@@ -18,6 +18,11 @@ export interface Track {
   created_at: string;
   updated_at: string;
   is_liked: boolean;
+  // Loudness normalization (EBU R128)
+  loudness_integrated: number | null;
+  loudness_true_peak: number | null;
+  loudness_range: number | null;
+  loudness_gain: number | null;
 }
 
 export interface TrackListResponse {
@@ -106,13 +111,68 @@ export interface LibraryStats {
   genres: { name: string; count: number }[];
 }
 
+export type WebSocketMessageType =
+  | 'media_key'
+  | 'scan_progress'
+  | 'scan_complete'
+  | 'library_updated'
+  | 'pong'
+  | 'files_detected'
+  | 'auto_scan_started'
+  | 'auto_scan_progress'
+  | 'auto_scan_complete';
+
 export interface WebSocketMessage {
-  type: string;
+  type: WebSocketMessageType | string;
   data?: any;
   key?: string;
 }
 
+export interface AutoScanProgress {
+  processed: number;
+  total: number;
+  current_file: string;
+  progress: number;
+}
+
+export interface FilesDetectedData {
+  count: number;
+  folder_id: number;
+  folder_name: string;
+}
+
+export interface AutoScanStartedData {
+  total: number;
+  folder_id: number;
+  folder_name: string;
+}
+
+export interface AutoScanCompleteData {
+  added: number;
+  total: number;
+  errors: number;
+  folder_name: string;
+}
+
 export type RepeatMode = 'none' | 'one' | 'all';
+
+// Recently played types for activity hub
+export interface RecentlyPlayedAlbum {
+  name: string;
+  artist: string | null;
+  last_played: string | null;
+  track_count: number;
+  total_duration_ms: number;
+  artwork_path: string | null;
+}
+
+export interface RecentlyPlayedArtist {
+  name: string;
+  last_played: string | null;
+  track_count: number;
+  album_count: number;
+  artwork_path: string | null;
+}
 
 // Duplicate detection types
 export interface DuplicateTrack {

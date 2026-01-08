@@ -1,6 +1,7 @@
 import os
 import mimetypes
 from pathlib import Path
+from functools import lru_cache
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse, FileResponse
 from sqlalchemy.orm import Session
@@ -8,6 +9,27 @@ from ...database import get_db
 from ...models.track import Track
 
 router = APIRouter(prefix="/stream", tags=["stream"])
+
+# In-memory cache for track file paths (avoid DB query on every stream)
+_track_path_cache: dict[int, str] = {}
+
+def get_cached_track_path(track_id: int, db: Session) -> str | None:
+    """Get track file path from cache or database."""
+    if track_id in _track_path_cache:
+        return _track_path_cache[track_id]
+
+    track = db.query(Track.file_path).filter(Track.id == track_id).first()
+    if track:
+        _track_path_cache[track_id] = track.file_path
+        return track.file_path
+    return None
+
+def invalidate_track_cache(track_id: int | None = None):
+    """Clear track path cache. Called when tracks are modified."""
+    if track_id is None:
+        _track_path_cache.clear()
+    elif track_id in _track_path_cache:
+        del _track_path_cache[track_id]
 
 MIME_TYPES = {
     ".mp3": "audio/mpeg",
@@ -29,11 +51,12 @@ async def stream_track(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    track = db.query(Track).filter(Track.id == track_id).first()
-    if not track:
+    # Use cached file path to avoid DB query on every stream request
+    track_file_path = get_cached_track_path(track_id, db)
+    if not track_file_path:
         raise HTTPException(status_code=404, detail="Track not found")
-    
-    file_path = Path(track.file_path)
+
+    file_path = Path(track_file_path)
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Audio file not found")
     

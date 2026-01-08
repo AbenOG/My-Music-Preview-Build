@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     
     SCAN_BATCH_SIZE: int = 50
     FILE_WATCHER_DEBOUNCE_MS: int = 500
+    FILE_STABILITY_DELAY_MS: int = 1500   # Wait for file size to stabilize
+    FILE_BATCH_WINDOW_MS: int = 2000       # Collect files into batches
     
     CORS_ORIGINS: list = ["http://localhost:5173", "http://127.0.0.1:5173"]
     

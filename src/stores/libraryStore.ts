@@ -1,10 +1,17 @@
 import { create } from 'zustand';
-import type { Folder, Track, Album, Artist, Playlist, ScanStatus, LibraryStats } from '../types';
+import type {
+  Folder, Track, Album, Artist, Playlist, ScanStatus, LibraryStats,
+  RecentlyPlayedAlbum, RecentlyPlayedArtist
+} from '../types';
 import { foldersApi } from '../api/folders';
 import { tracksApi } from '../api/tracks';
 import { albumsApi } from '../api/albums';
 import { artistsApi } from '../api/artists';
 import { playlistsApi } from '../api/playlists';
+
+const getAlbumKey = (albumName: string, albumArtist: string | null): string => {
+  return `${albumName}|${albumArtist || ''}`;
+};
 
 interface LibraryStore {
   folders: Folder[];
@@ -14,8 +21,16 @@ interface LibraryStore {
   playlists: Playlist[];
   likedTracks: Track[];
   likedTrackIds: Set<number>;
+  savedAlbums: Album[];
+  savedAlbumKeys: Set<string>;
   recentTracks: Track[];
   stats: LibraryStats | null;
+
+  // Activity hub state
+  continueListening: Track[];
+  recentlyPlayedAlbums: RecentlyPlayedAlbum[];
+  recentlyPlayedArtists: RecentlyPlayedArtist[];
+  recentPlaylists: Playlist[];
 
   isLoading: boolean;
   isScanning: boolean;
@@ -27,9 +42,11 @@ interface LibraryStore {
   fetchArtists: () => Promise<void>;
   fetchPlaylists: () => Promise<void>;
   fetchLikedTracks: () => Promise<void>;
+  fetchSavedAlbums: () => Promise<void>;
   fetchRecentTracks: () => Promise<void>;
   fetchStats: () => Promise<void>;
   fetchAll: () => Promise<void>;
+  fetchActivityHub: () => Promise<void>;
 
   addFolder: (path: string) => Promise<Folder>;
   removeFolder: (id: number) => Promise<void>;
@@ -45,6 +62,9 @@ interface LibraryStore {
   toggleLike: (trackId: number) => Promise<void>;
   isLiked: (trackId: number) => boolean;
 
+  toggleSaveAlbum: (albumName: string, albumArtist: string | null) => Promise<void>;
+  isAlbumSaved: (albumName: string, albumArtist: string | null) => boolean;
+
   updateScanProgress: (progress: ScanStatus) => void;
   setIsScanning: (scanning: boolean) => void;
 }
@@ -57,8 +77,16 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
   playlists: [],
   likedTracks: [],
   likedTrackIds: new Set(),
+  savedAlbums: [],
+  savedAlbumKeys: new Set(),
   recentTracks: [],
   stats: null,
+
+  // Activity hub state
+  continueListening: [],
+  recentlyPlayedAlbums: [],
+  recentlyPlayedArtists: [],
+  recentPlaylists: [],
 
   isLoading: false,
   isScanning: false,
@@ -119,6 +147,18 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
     }
   },
 
+  fetchSavedAlbums: async () => {
+    try {
+      const savedAlbums = await albumsApi.getSaved();
+      const savedAlbumKeys = new Set(
+        savedAlbums.map(a => getAlbumKey(a.name, a.artist))
+      );
+      set({ savedAlbums, savedAlbumKeys });
+    } catch (error) {
+      console.error('Failed to fetch saved albums:', error);
+    }
+  },
+
   fetchRecentTracks: async () => {
     try {
       const recentTracks = await tracksApi.getRecent(20);
@@ -147,11 +187,31 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
         get().fetchArtists(),
         get().fetchPlaylists(),
         get().fetchLikedTracks(),
+        get().fetchSavedAlbums(),
         get().fetchRecentTracks(),
         get().fetchStats(),
       ]);
     } finally {
       set({ isLoading: false });
+    }
+  },
+
+  fetchActivityHub: async () => {
+    try {
+      const [continueListening, recentlyPlayedAlbums, recentlyPlayedArtists, recentPlaylists] = await Promise.all([
+        tracksApi.getContinueListening(10),
+        tracksApi.getRecentlyPlayedAlbums(8),
+        tracksApi.getRecentlyPlayedArtists(8),
+        playlistsApi.getRecent(6),
+      ]);
+      set({
+        continueListening,
+        recentlyPlayedAlbums,
+        recentlyPlayedArtists,
+        recentPlaylists,
+      });
+    } catch (error) {
+      console.error('Failed to fetch activity hub:', error);
     }
   },
 
@@ -240,6 +300,44 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
 
   isLiked: (trackId: number) => {
     return get().likedTrackIds.has(trackId);
+  },
+
+  toggleSaveAlbum: async (albumName: string, albumArtist: string | null) => {
+    const key = getAlbumKey(albumName, albumArtist);
+    const { savedAlbumKeys, albums } = get();
+
+    if (savedAlbumKeys.has(key)) {
+      await albumsApi.unsave(albumName, albumArtist || undefined);
+      set((state) => {
+        const newKeys = new Set(state.savedAlbumKeys);
+        newKeys.delete(key);
+        return {
+          savedAlbumKeys: newKeys,
+          savedAlbums: state.savedAlbums.filter(
+            a => getAlbumKey(a.name, a.artist) !== key
+          )
+        };
+      });
+    } else {
+      await albumsApi.save(albumName, albumArtist || undefined);
+      const album = albums.find(
+        a => a.name === albumName && a.artist === albumArtist
+      );
+      if (album) {
+        set((state) => {
+          const newKeys = new Set(state.savedAlbumKeys);
+          newKeys.add(key);
+          return {
+            savedAlbumKeys: newKeys,
+            savedAlbums: [album, ...state.savedAlbums]
+          };
+        });
+      }
+    }
+  },
+
+  isAlbumSaved: (albumName: string, albumArtist: string | null) => {
+    return get().savedAlbumKeys.has(getAlbumKey(albumName, albumArtist));
   },
 
   updateScanProgress: (progress: ScanStatus) => {

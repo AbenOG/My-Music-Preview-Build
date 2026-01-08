@@ -16,7 +16,7 @@ ACTIVITY_MAP: Dict[str, Dict] = {
         "moods": ["Energetic", "Intense"],
         "genres": ["rock", "metal", "edm", "hip hop", "hip-hop", "drum and bass", "dubstep", "hardcore", "techno"],
     },
-    "Focus": {
+    "Studying": {
         "moods": ["Focus", "Chill"],
         "genres": ["classical", "ambient", "instrumental", "piano", "lo-fi", "lofi", "soundtrack", "jazz"],
     },
@@ -24,9 +24,9 @@ ACTIVITY_MAP: Dict[str, Dict] = {
         "moods": ["Chill", "Melancholic"],
         "genres": ["ambient", "classical", "acoustic", "piano", "meditation", "new age", "nature"],
     },
-    "Party": {
-        "moods": ["Happy", "Energetic", "Party"],
-        "genres": ["dance", "edm", "house", "pop", "hip hop", "hip-hop", "disco", "funk", "latin"],
+    "Driving": {
+        "moods": ["Happy", "Energetic"],
+        "genres": ["rock", "pop", "indie", "alternative", "electronic", "synthwave", "80s", "classic rock"],
     },
 }
 

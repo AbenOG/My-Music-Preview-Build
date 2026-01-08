@@ -1,10 +1,10 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ...database import get_db
-from ...models.track import Track, LikedSong
-from ...schemas.track import AlbumResponse, TrackResponse
+from ...models.track import Track, LikedSong, SavedAlbum
+from ...schemas.track import AlbumResponse, TrackResponse, SavedAlbumCreate
 
 router = APIRouter(prefix="/albums", tags=["albums"])
 
@@ -68,6 +68,90 @@ async def list_albums(
         ))
     
     return result
+
+
+@router.get("/saved", response_model=List[AlbumResponse])
+async def list_saved_albums(db: Session = Depends(get_db)):
+    """Get all saved albums."""
+    saved = db.query(SavedAlbum).order_by(SavedAlbum.saved_at.desc()).all()
+
+    result = []
+    for s in saved:
+        # Get album info from tracks
+        tracks = db.query(Track).filter(Track.album == s.album_name).all()
+
+        if tracks:
+            first_track = tracks[0]
+            total_duration = sum(t.duration_ms or 0 for t in tracks)
+            result.append(AlbumResponse(
+                name=s.album_name,
+                artist=s.album_artist or first_track.album_artist or first_track.artist,
+                year=first_track.year,
+                track_count=len(tracks),
+                total_duration_ms=total_duration,
+                artwork_path=first_track.artwork_path
+            ))
+
+    return result
+
+
+@router.post("/saved")
+async def save_album(data: SavedAlbumCreate, db: Session = Depends(get_db)):
+    """Save an album to the user's library."""
+    # Check if already saved
+    existing = db.query(SavedAlbum).filter(
+        SavedAlbum.album_name == data.album_name,
+        SavedAlbum.album_artist == data.album_artist
+    ).first()
+
+    if existing:
+        return {"message": "Already saved", "is_saved": True}
+
+    saved = SavedAlbum(
+        album_name=data.album_name,
+        album_artist=data.album_artist
+    )
+    db.add(saved)
+    db.commit()
+
+    return {"message": "Album saved", "is_saved": True}
+
+
+@router.delete("/saved")
+async def unsave_album(
+    album_name: str,
+    album_artist: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Remove an album from saved albums."""
+    saved = db.query(SavedAlbum).filter(
+        SavedAlbum.album_name == album_name,
+        SavedAlbum.album_artist == album_artist
+    ).first()
+
+    if not saved:
+        return {"message": "Not saved", "is_saved": False}
+
+    db.delete(saved)
+    db.commit()
+
+    return {"message": "Album unsaved", "is_saved": False}
+
+
+@router.get("/{album_name}/saved-status")
+async def check_album_saved_status(
+    album_name: str,
+    album_artist: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Check if an album is saved."""
+    saved = db.query(SavedAlbum).filter(
+        SavedAlbum.album_name == album_name,
+        SavedAlbum.album_artist == album_artist
+    ).first()
+
+    return {"is_saved": saved is not None}
+
 
 @router.get("/{album_name}", response_model=AlbumResponse)
 async def get_album(album_name: str, db: Session = Depends(get_db)):

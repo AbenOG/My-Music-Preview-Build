@@ -19,12 +19,25 @@ export function AudioProvider({ children }: AudioProviderProps) {
   const loadState = usePlayerStore((state) => state.loadState);
   const setAllTracks = usePlayerStore((state) => state.setAllTracks);
   const fetchAll = useLibraryStore((state) => state.fetchAll);
+  const fetchPlaylists = useLibraryStore((state) => state.fetchPlaylists);
   const tracks = useLibraryStore((state) => state.tracks);
 
   useEffect(() => {
     loadState();
     fetchAll();
   }, []);
+
+  // Listen for radio playlist creation to refresh sidebar
+  useEffect(() => {
+    const handleRadioPlaylistCreated = () => {
+      fetchPlaylists();
+    };
+
+    window.addEventListener('radio-playlist-created', handleRadioPlaylistCreated);
+    return () => {
+      window.removeEventListener('radio-playlist-created', handleRadioPlaylistCreated);
+    };
+  }, [fetchPlaylists]);
 
   useEffect(() => {
     if (tracks.length > 0) {

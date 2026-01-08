@@ -53,6 +53,11 @@ def _migrate_tracks_table():
         ("musicbrainz_artist_id", "VARCHAR"),
         ("musicbrainz_lookup_at", "DATETIME"),
         ("metadata_completeness", "FLOAT"),
+        # Loudness normalization
+        ("loudness_integrated", "FLOAT"),
+        ("loudness_true_peak", "FLOAT"),
+        ("loudness_range", "FLOAT"),
+        ("loudness_gain", "FLOAT"),
     ]
 
     with engine.connect() as conn:

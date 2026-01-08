@@ -1,5 +1,12 @@
 import api from './client';
-import type { Track, TrackListResponse, PlayHistory, LibraryStats } from '../types';
+import type {
+  Track,
+  TrackListResponse,
+  PlayHistory,
+  LibraryStats,
+  RecentlyPlayedAlbum,
+  RecentlyPlayedArtist
+} from '../types';
 
 export interface TrackFilters {
   page?: number;
@@ -108,6 +115,21 @@ export const tracksApi = {
 
   getSimilarArtists: async (artistName: string, limit = 10) => {
     const response = await api.get(`/tracks/discover/similar-artists/${encodeURIComponent(artistName)}`, { params: { limit } });
+    return response.data;
+  },
+
+  getContinueListening: async (limit = 10): Promise<Track[]> => {
+    const response = await api.get('/tracks/continue-listening', { params: { limit } });
+    return response.data;
+  },
+
+  getRecentlyPlayedAlbums: async (limit = 10): Promise<RecentlyPlayedAlbum[]> => {
+    const response = await api.get('/tracks/recently-played/albums', { params: { limit } });
+    return response.data;
+  },
+
+  getRecentlyPlayedArtists: async (limit = 10): Promise<RecentlyPlayedArtist[]> => {
+    const response = await api.get('/tracks/recently-played/artists', { params: { limit } });
     return response.data;
   },
 };

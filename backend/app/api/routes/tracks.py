@@ -35,7 +35,11 @@ def get_track_response(track: Track, db: Session) -> TrackResponse:
         artwork_path=track.artwork_path,
         created_at=track.created_at,
         updated_at=track.updated_at,
-        is_liked=is_liked
+        is_liked=is_liked,
+        loudness_integrated=track.loudness_integrated,
+        loudness_true_peak=track.loudness_true_peak,
+        loudness_range=track.loudness_range,
+        loudness_gain=track.loudness_gain,
     )
 
 @router.get("", response_model=TrackListResponse)
@@ -386,8 +390,95 @@ async def get_continue_listening(
     recent_tracks = db.query(Track).join(
         subquery, Track.id == subquery.c.track_id
     ).order_by(desc(subquery.c.last_played)).limit(limit).all()
-    
+
     return [get_track_response(track, db) for track in recent_tracks]
+
+
+@router.get("/recently-played/albums")
+async def get_recently_played_albums(
+    limit: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db)
+):
+    """Get albums sorted by most recent play time."""
+    # Get the most recent play for each track
+    subquery = db.query(
+        PlayHistory.track_id,
+        func.max(PlayHistory.played_at).label('last_played')
+    ).group_by(PlayHistory.track_id).subquery()
+
+    # Join with tracks and group by album
+    albums = db.query(
+        Track.album,
+        Track.artist,
+        func.max(subquery.c.last_played).label('last_played'),
+        func.count(func.distinct(Track.id)).label('track_count'),
+        func.sum(Track.duration_ms).label('total_duration'),
+        func.min(Track.artwork_path).label('artwork_path')
+    ).join(
+        subquery, Track.id == subquery.c.track_id
+    ).filter(
+        Track.album.isnot(None)
+    ).group_by(
+        Track.album, Track.artist
+    ).order_by(
+        desc('last_played')
+    ).limit(limit).all()
+
+    result = []
+    for album in albums:
+        result.append({
+            "name": album.album,
+            "artist": album.artist,
+            "last_played": album.last_played.isoformat() if album.last_played else None,
+            "track_count": album.track_count,
+            "total_duration_ms": album.total_duration or 0,
+            "artwork_path": album.artwork_path
+        })
+
+    return result
+
+
+@router.get("/recently-played/artists")
+async def get_recently_played_artists(
+    limit: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db)
+):
+    """Get artists sorted by most recent play time."""
+    # Get the most recent play for each track
+    subquery = db.query(
+        PlayHistory.track_id,
+        func.max(PlayHistory.played_at).label('last_played')
+    ).group_by(PlayHistory.track_id).subquery()
+
+    # Join with tracks and group by artist
+    artists = db.query(
+        Track.artist,
+        func.max(subquery.c.last_played).label('last_played'),
+        func.count(func.distinct(Track.id)).label('track_count'),
+        func.count(func.distinct(Track.album)).label('album_count'),
+        func.min(Track.artwork_path).label('artwork_path')
+    ).join(
+        subquery, Track.id == subquery.c.track_id
+    ).filter(
+        Track.artist.isnot(None)
+    ).group_by(
+        Track.artist
+    ).order_by(
+        desc('last_played')
+    ).limit(limit).all()
+
+    result = []
+    for artist in artists:
+        result.append({
+            "name": artist.artist,
+            "last_played": artist.last_played.isoformat() if artist.last_played else None,
+            "track_count": artist.track_count,
+            "album_count": artist.album_count,
+            "artwork_path": artist.artwork_path
+        })
+
+    return result
+
 
 # NOTE: These catch-all routes MUST be at the end of the file
 # to avoid matching specific routes like /continue-listening
@@ -402,6 +493,7 @@ async def get_track(track_id: int, db: Session = Depends(get_db)):
 @router.post("/{track_id}/rescan")
 async def rescan_track(track_id: int, db: Session = Depends(get_db)):
     from ...services.metadata import metadata_extractor
+    from ...services.loudness import loudness_analyzer
 
     track = db.query(Track).filter(Track.id == track_id).first()
     if not track:
@@ -422,6 +514,13 @@ async def rescan_track(track_id: int, db: Session = Depends(get_db)):
         track.bitrate = metadata.get("bitrate")
         track.sample_rate = metadata.get("sample_rate")
         track.artwork_path = metadata.get("artwork_path")
+
+        # Re-analyze loudness
+        loudness_data = loudness_analyzer.analyze(track.file_path)
+        track.loudness_integrated = loudness_data.get("integrated")
+        track.loudness_true_peak = loudness_data.get("true_peak")
+        track.loudness_range = loudness_data.get("range")
+        track.loudness_gain = loudness_data.get("gain")
 
         db.commit()
         db.refresh(track)

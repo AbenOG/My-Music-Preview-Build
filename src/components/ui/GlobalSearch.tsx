@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, Music, Disc, User, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -176,24 +177,25 @@ export function GlobalSearch() {
         </kbd>
       </button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-            />
-            
-            <div className="fixed inset-0 z-50 flex items-start justify-center pt-32 px-4">
+      {createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <>
               <motion.div
-                ref={containerRef}
-                initial={{ opacity: 0, scale: 0.95, y: -20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -20 }}
-                className="w-full max-w-2xl bg-black/95 backdrop-blur-xl rounded-xl border border-white/10 shadow-2xl overflow-hidden"
-              >
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999]"
+              />
+
+              <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-32 px-4">
+                <motion.div
+                  ref={containerRef}
+                  initial={{ opacity: 0, scale: 0.95, y: -20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                  className="w-full max-w-2xl bg-black/95 backdrop-blur-xl rounded-xl border border-white/10 shadow-2xl overflow-hidden"
+                >
                 <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
                   <Search className="w-5 h-5 text-white/50" />
                   <input
@@ -327,11 +329,13 @@ export function GlobalSearch() {
                     <p className="text-white/40 text-sm">Start typing to search your library</p>
                   </div>
                 )}
-              </motion.div>
-            </div>
-          </>
-        )}
-      </AnimatePresence>
+                </motion.div>
+              </div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 }

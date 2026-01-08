@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     Coffee, Zap, Cloud, Sun, Flame, Heart,
     Dumbbell, Brain, Moon, PartyPopper,
-    Sparkles, Clock, Play, RefreshCw
+    Sparkles, Clock, Play, RefreshCw, Car, BookOpen
 } from 'lucide-react';
 import { usePlayerStore } from '../stores/playerStore';
 import { getArtworkUrl } from '../api/client';
@@ -34,9 +34,9 @@ const MOOD_COLORS: Record<string, { from: string; to: string }> = {
 
 const ACTIVITY_ICONS: Record<string, any> = {
     'Workout': Dumbbell,
-    'Focus': Brain,
+    'Studying': BookOpen,
     'Sleep': Moon,
-    'Party': PartyPopper,
+    'Driving': Car,
 };
 
 interface Recommendation {
@@ -195,7 +195,7 @@ export function Discover() {
                         </div>
                         <h2 className="text-2xl font-bold">Browse by Mood</h2>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
                         {moods.map((mood: any, i: number) => {
                             const Icon = MOOD_ICONS[mood.name] || Coffee;
                             const colors = MOOD_COLORS[mood.name] || { from: '#6b7280', to: '#4b5563' };
@@ -206,18 +206,19 @@ export function Discover() {
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: i * 0.05 }}
                                     onClick={() => navigate(`/mood/${encodeURIComponent(mood.name)}`)}
-                                    className="group cursor-pointer p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors duration-300 ring-1 ring-white/5 hover:ring-white/15"
+                                    className="group cursor-pointer relative aspect-[2/1] rounded-2xl overflow-hidden ring-1 ring-white/10 hover:ring-white/25 transition-all duration-300"
+                                    style={{
+                                        background: `linear-gradient(135deg, ${colors.from}, ${colors.to})`
+                                    }}
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <div
-                                            className="w-10 h-10 rounded-xl flex items-center justify-center"
-                                            style={{ backgroundColor: `${colors.from}20` }}
-                                        >
-                                            <Icon className="w-5 h-5" style={{ color: colors.from }} />
-                                        </div>
+                                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-300" />
+                                    <div className="absolute inset-0 flex items-center justify-between p-5">
                                         <div className="flex-1 min-w-0">
-                                            <h3 className="font-semibold text-white truncate">{mood.name}</h3>
-                                            <p className="text-white/50 text-xs">{mood.track_count} tracks</p>
+                                            <h3 className="text-xl font-bold text-white truncate">{mood.name}</h3>
+                                            <p className="text-white/80 text-sm">{mood.track_count} tracks</p>
+                                        </div>
+                                        <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                                            <Icon className="w-6 h-6 text-white" />
                                         </div>
                                     </div>
                                 </motion.div>
@@ -235,7 +236,7 @@ export function Discover() {
                         </div>
                         <h2 className="text-2xl font-bold">Made for Your Activities</h2>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
                         {activities.map((activity: any, i: number) => {
                             const Icon = ACTIVITY_ICONS[activity.name] || Dumbbell;
                             return (
@@ -245,20 +246,21 @@ export function Discover() {
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: i * 0.05 }}
                                     onClick={() => navigate(`/activity/${encodeURIComponent(activity.name)}`)}
-                                    className="group cursor-pointer p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors duration-300 ring-1 ring-white/5 hover:ring-white/15"
+                                    className="group cursor-pointer relative aspect-[2/1] rounded-2xl overflow-hidden ring-1 ring-white/10 hover:ring-white/25 transition-all duration-300"
+                                    style={{
+                                        background: `linear-gradient(135deg, ${activity.colors?.from || '#f59e0b'}, ${activity.colors?.to || '#d97706'})`
+                                    }}
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <div
-                                            className="w-10 h-10 rounded-xl flex items-center justify-center"
-                                            style={{ backgroundColor: `${activity.colors.from}20` }}
-                                        >
-                                            <Icon className="w-5 h-5" style={{ color: activity.colors.from }} />
-                                        </div>
+                                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-300" />
+                                    <div className="absolute inset-0 flex items-center justify-between p-5">
                                         <div className="flex-1 min-w-0">
-                                            <h3 className="font-semibold text-white truncate">{activity.name}</h3>
-                                            <p className="text-white/50 text-xs">
+                                            <h3 className="text-xl font-bold text-white truncate">{activity.name}</h3>
+                                            <p className="text-white/80 text-sm">
                                                 {activity.track_count} tracks · {formatDuration(activity.total_duration_ms)}
                                             </p>
+                                        </div>
+                                        <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                                            <Icon className="w-6 h-6 text-white" />
                                         </div>
                                     </div>
                                 </motion.div>

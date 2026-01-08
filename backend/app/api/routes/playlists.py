@@ -1,16 +1,18 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, desc
 from ...database import get_db
 from ...models.playlist import Playlist, PlaylistTrack
 from ...models.track import Track, LikedSong
 from ...schemas.playlist import (
-    PlaylistCreate, PlaylistUpdate, PlaylistResponse, 
-    PlaylistDetailResponse, PlaylistTrackAdd, PlaylistReorder
+    PlaylistCreate, PlaylistUpdate, PlaylistResponse,
+    PlaylistDetailResponse, PlaylistTrackAdd, PlaylistReorder,
+    PlaylistTracksAdd, PlaylistExtend
 )
 from ...schemas.track import TrackResponse
 from ...services.smart_playlists import get_smart_playlists, get_smart_playlist_tracks
+from ...services.recommendations import get_radio_tracks
 
 router = APIRouter(prefix="/playlists", tags=["playlists"])
 
@@ -256,16 +258,212 @@ async def reorder_playlist_tracks(
     playlist = db.query(Playlist).filter(Playlist.id == playlist_id).first()
     if not playlist:
         raise HTTPException(status_code=404, detail="Playlist not found")
-    
+
     for i, track_id in enumerate(reorder_data.track_ids):
         playlist_track = db.query(PlaylistTrack).filter(
             PlaylistTrack.playlist_id == playlist_id,
             PlaylistTrack.track_id == track_id
         ).first()
-        
+
         if playlist_track:
             playlist_track.position = i
-    
+
     db.commit()
-    
+
     return {"message": "Playlist reordered"}
+
+
+@router.get("/recent", response_model=List[PlaylistResponse])
+async def get_recent_playlists(
+    limit: int = Query(6, ge=1, le=20),
+    db: Session = Depends(get_db)
+):
+    """Get recently modified playlists."""
+    playlists = db.query(Playlist).order_by(
+        desc(Playlist.updated_at)
+    ).limit(limit).all()
+
+    result = []
+    for playlist in playlists:
+        info = get_playlist_info(playlist, db)
+        result.append(PlaylistResponse(
+            id=playlist.id,
+            name=playlist.name,
+            description=playlist.description,
+            cover_path=playlist.cover_path,
+            is_system=playlist.is_system,
+            created_at=playlist.created_at,
+            updated_at=playlist.updated_at,
+            track_count=info["track_count"],
+            total_duration_ms=info["total_duration_ms"]
+        ))
+
+    return result
+
+
+@router.post("/radio/generate", response_model=PlaylistDetailResponse)
+async def generate_radio_playlist(
+    seed_track_id: int = Query(..., description="ID of the seed track"),
+    limit: int = Query(40, ge=20, le=100, description="Number of tracks to generate"),
+    db: Session = Depends(get_db)
+):
+    """Generate a radio playlist based on a seed track."""
+    # Get the seed track
+    seed_track = db.query(Track).filter(Track.id == seed_track_id).first()
+    if not seed_track:
+        raise HTTPException(status_code=404, detail="Seed track not found")
+
+    # Generate playlist name
+    playlist_name = f"{seed_track.title} Radio"
+
+    # Check if a radio playlist with this name already exists
+    existing = db.query(Playlist).filter(Playlist.name == playlist_name).first()
+    if existing:
+        # Delete existing radio playlist to regenerate
+        db.query(PlaylistTrack).filter(PlaylistTrack.playlist_id == existing.id).delete()
+        db.delete(existing)
+        db.commit()
+
+    # Create the playlist
+    playlist = Playlist(
+        name=playlist_name,
+        description=f"Radio based on {seed_track.title} by {seed_track.artist or 'Unknown'}",
+        is_system=False  # User-visible playlist
+    )
+    db.add(playlist)
+    db.commit()
+    db.refresh(playlist)
+
+    # Get recommended tracks using the scoring algorithm
+    recommended_tracks = get_radio_tracks(db, seed_track, limit - 1)
+
+    # Add seed track first, then recommended tracks
+    all_tracks = [seed_track] + recommended_tracks
+
+    for position, track in enumerate(all_tracks):
+        playlist_track = PlaylistTrack(
+            playlist_id=playlist.id,
+            track_id=track.id,
+            position=position
+        )
+        db.add(playlist_track)
+
+    db.commit()
+
+    # Return the full playlist with tracks
+    tracks = [get_track_response(t, db) for t in all_tracks]
+    info = get_playlist_info(playlist, db)
+
+    return PlaylistDetailResponse(
+        id=playlist.id,
+        name=playlist.name,
+        description=playlist.description,
+        cover_path=playlist.cover_path,
+        is_system=playlist.is_system,
+        created_at=playlist.created_at,
+        updated_at=playlist.updated_at,
+        track_count=info["track_count"],
+        total_duration_ms=info["total_duration_ms"],
+        tracks=tracks
+    )
+
+
+@router.post("/{playlist_id}/tracks/bulk")
+async def add_tracks_to_playlist_bulk(
+    playlist_id: int,
+    tracks_data: PlaylistTracksAdd,
+    db: Session = Depends(get_db)
+):
+    """Add multiple tracks to a playlist at once."""
+    playlist = db.query(Playlist).filter(Playlist.id == playlist_id).first()
+    if not playlist:
+        raise HTTPException(status_code=404, detail="Playlist not found")
+
+    # Get current max position
+    max_position = db.query(func.max(PlaylistTrack.position)).filter(
+        PlaylistTrack.playlist_id == playlist_id
+    ).scalar() or 0
+
+    # Get existing track IDs in playlist
+    existing_track_ids = set(
+        pt.track_id for pt in db.query(PlaylistTrack.track_id).filter(
+            PlaylistTrack.playlist_id == playlist_id
+        ).all()
+    )
+
+    added_count = 0
+    for track_id in tracks_data.track_ids:
+        # Skip if already in playlist
+        if track_id in existing_track_ids:
+            continue
+
+        # Verify track exists
+        track = db.query(Track).filter(Track.id == track_id).first()
+        if not track:
+            continue
+
+        max_position += 1
+        playlist_track = PlaylistTrack(
+            playlist_id=playlist_id,
+            track_id=track_id,
+            position=max_position
+        )
+        db.add(playlist_track)
+        existing_track_ids.add(track_id)
+        added_count += 1
+
+    db.commit()
+
+    return {"message": f"Added {added_count} tracks to playlist"}
+
+
+@router.post("/{playlist_id}/extend", response_model=List[TrackResponse])
+async def extend_playlist(
+    playlist_id: int,
+    extend_data: PlaylistExtend,
+    db: Session = Depends(get_db)
+):
+    """Extend a radio playlist with more tracks based on a seed track."""
+    playlist = db.query(Playlist).filter(Playlist.id == playlist_id).first()
+    if not playlist:
+        raise HTTPException(status_code=404, detail="Playlist not found")
+
+    # Get the seed track
+    seed_track = db.query(Track).filter(Track.id == extend_data.seed_track_id).first()
+    if not seed_track:
+        raise HTTPException(status_code=404, detail="Seed track not found")
+
+    # Get current track IDs in playlist
+    current_track_ids = [
+        pt.track_id for pt in db.query(PlaylistTrack.track_id).filter(
+            PlaylistTrack.playlist_id == playlist_id
+        ).all()
+    ]
+
+    # Combine with explicitly excluded IDs
+    exclude_ids = list(set(current_track_ids + extend_data.exclude_ids))
+
+    # Generate more tracks
+    new_tracks = get_radio_tracks(db, seed_track, extend_data.limit, exclude_ids)
+
+    if not new_tracks:
+        return []
+
+    # Get current max position
+    max_position = db.query(func.max(PlaylistTrack.position)).filter(
+        PlaylistTrack.playlist_id == playlist_id
+    ).scalar() or 0
+
+    # Add new tracks to playlist
+    for track in new_tracks:
+        max_position += 1
+        playlist_track = PlaylistTrack(
+            playlist_id=playlist_id,
+            track_id=track.id,
+            position=max_position
+        )
+        db.add(playlist_track)
+
+    db.commit()
+
+    return [get_track_response(t, db) for t in new_tracks]

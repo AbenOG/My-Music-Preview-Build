@@ -9,6 +9,7 @@ import { ArtistDetail } from './pages/ArtistDetail';
 import { Albums } from './pages/Albums';
 import { AlbumDetail } from './pages/AlbumDetail';
 import { LikedSongs } from './pages/LikedSongs';
+import { SavedAlbums } from './pages/SavedAlbums';
 import { Playlist } from './pages/Playlist';
 import { Library } from './pages/Library';
 import { Settings } from './pages/Settings';
@@ -20,6 +21,7 @@ import { Activity } from './pages/Activity';
 import { Duplicates } from './pages/Duplicates';
 import { MetadataFixer } from './pages/MetadataFixer';
 import { LyricsFullScreen } from './components/ui/LyricsFullScreen';
+import { AutoScanToast } from './components/ui/Toast';
 
 function App() {
   return (
@@ -44,12 +46,14 @@ function App() {
             <Route path="duplicates" element={<Duplicates />} />
             <Route path="metadata-fixer" element={<MetadataFixer />} />
             <Route path="liked" element={<LikedSongs />} />
+            <Route path="saved-albums" element={<SavedAlbums />} />
             <Route path="playlist/:id" element={<Playlist />} />
             <Route path="settings" element={<Settings />} />
             <Route path="*" element={<Home />} />
           </Route>
         </Routes>
         <LyricsFullScreen />
+        <AutoScanToast />
       </BrowserRouter>
     </QueryProvider>
   );

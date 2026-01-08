@@ -9,3 +9,7 @@ aiofiles
 pydantic-settings
 httpx
 musicbrainzngs
+# Loudness analysis
+pyloudnorm
+soundfile
+numpy

@@ -12,6 +12,7 @@ from ..models.playlist import PlaylistTrack
 from .metadata import metadata_extractor
 from .mood_mapper import get_mood_from_genre, get_decade_from_year
 from .normalizer import normalizer
+from .loudness import loudness_analyzer
 
 
 class ScanProgress:
@@ -162,6 +163,9 @@ class FolderScanner:
                         title_norm = normalizer.normalize_title(metadata["title"])
                         completeness = normalizer.calculate_completeness(metadata)
 
+                        # Analyze loudness for normalization
+                        loudness_data = loudness_analyzer.analyze(file_path)
+
                         track = Track(
                             file_path=metadata["file_path"],
                             title=metadata["title"],
@@ -187,6 +191,11 @@ class FolderScanner:
                             album_normalized=album_norm,
                             title_normalized=title_norm,
                             metadata_completeness=completeness,
+                            # Loudness normalization
+                            loudness_integrated=loudness_data.get("integrated"),
+                            loudness_true_peak=loudness_data.get("true_peak"),
+                            loudness_range=loudness_data.get("range"),
+                            loudness_gain=loudness_data.get("gain"),
                         )
                         db.add(track)
                         result["added"] += 1
@@ -270,6 +279,9 @@ class FolderScanner:
                     title_norm = normalizer.normalize_title(metadata["title"])
                     completeness = normalizer.calculate_completeness(metadata)
 
+                    # Analyze loudness for normalization
+                    loudness_data = loudness_analyzer.analyze(file_path)
+
                     track = Track(
                         file_path=metadata["file_path"],
                         title=metadata["title"],
@@ -295,6 +307,11 @@ class FolderScanner:
                         album_normalized=album_norm,
                         title_normalized=title_norm,
                         metadata_completeness=completeness,
+                        # Loudness normalization
+                        loudness_integrated=loudness_data.get("integrated"),
+                        loudness_true_peak=loudness_data.get("true_peak"),
+                        loudness_range=loudness_data.get("range"),
+                        loudness_gain=loudness_data.get("gain"),
                     )
                     db.add(track)
                     result["added"] += 1

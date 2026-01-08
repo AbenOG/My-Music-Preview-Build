@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, Music, Disc, User, Heart, Settings, Radio, PlusSquare, Library, Loader2, Compass } from 'lucide-react';
+import { Home, Music, Disc, User, Heart, Settings, Radio, PlusSquare, Library, Loader2, Compass, Bookmark } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { useLibraryStore } from '../../stores/libraryStore';
@@ -18,7 +18,7 @@ const libraryItems = [
 ];
 
 export function Sidebar() {
-    const { playlists, likedTracks, isScanning } = useLibraryStore();
+    const { playlists, likedTracks, savedAlbums, isScanning } = useLibraryStore();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     return (
@@ -57,6 +57,22 @@ export function Sidebar() {
                         </div>
                         Liked Songs
                         <span className="ml-auto text-xs text-white/40">{likedTracks.length}</span>
+                    </NavLink>
+
+                    <NavLink
+                        to="/saved-albums"
+                        className={({ isActive }) => cn(
+                            "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                            isActive
+                                ? "bg-white/10 text-white"
+                                : "text-white/60 hover:text-white hover:bg-white/5"
+                        )}
+                    >
+                        <div className="w-4 h-4 rounded-sm bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center">
+                            <Bookmark className="w-2.5 h-2.5 text-white fill-current" />
+                        </div>
+                        Saved Albums
+                        <span className="ml-auto text-xs text-white/40">{savedAlbums.length}</span>
                     </NavLink>
                 </div>
 

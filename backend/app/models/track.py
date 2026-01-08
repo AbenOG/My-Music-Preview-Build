@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship
 from ..database import Base
 
@@ -53,6 +53,12 @@ class Track(Base):
     # Metadata quality score (0-100)
     metadata_completeness = Column(Integer, default=0)
 
+    # Loudness normalization (EBU R128)
+    loudness_integrated = Column(Float, nullable=True)  # Integrated loudness in LUFS
+    loudness_true_peak = Column(Float, nullable=True)   # True peak in dBTP
+    loudness_range = Column(Float, nullable=True)       # Loudness range in LU
+    loudness_gain = Column(Float, nullable=True)        # Calculated gain to reach target LUFS
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -85,3 +91,16 @@ class PlayHistory(Base):
     play_duration_ms = Column(Integer, nullable=True)
 
     track = relationship("Track", backref="play_history", passive_deletes="all")
+
+
+class SavedAlbum(Base):
+    __tablename__ = "saved_albums"
+
+    id = Column(Integer, primary_key=True, index=True)
+    album_name = Column(String, nullable=False, index=True)
+    album_artist = Column(String, nullable=True, index=True)
+    saved_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint('album_name', 'album_artist', name='uq_saved_album'),
+    )

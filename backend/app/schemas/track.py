@@ -39,7 +39,12 @@ class TrackResponse(TrackBase):
     created_at: datetime
     updated_at: datetime
     is_liked: bool = False
-    
+    # Loudness normalization
+    loudness_integrated: Optional[float] = None
+    loudness_true_peak: Optional[float] = None
+    loudness_range: Optional[float] = None
+    loudness_gain: Optional[float] = None
+
     class Config:
         from_attributes = True
 
@@ -88,3 +93,18 @@ class PlayHistoryResponse(BaseModel):
 class PlayHistoryCreate(BaseModel):
     track_id: int
     play_duration_ms: Optional[int] = None
+
+
+class SavedAlbumCreate(BaseModel):
+    album_name: str
+    album_artist: Optional[str] = None
+
+
+class SavedAlbumResponse(BaseModel):
+    id: int
+    album_name: str
+    album_artist: Optional[str] = None
+    saved_at: datetime
+
+    class Config:
+        from_attributes = True

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FolderPlus, Trash2, RefreshCw, HardDrive, Music, Disc, User, Clock, Loader2, Volume2, Copy, FileEdit, Database } from 'lucide-react';
+import { FolderPlus, Trash2, RefreshCw, HardDrive, Music, Disc, User, Clock, Loader2, Volume2, Copy, FileEdit, Database, Shield } from 'lucide-react';
 import { useLibraryStore } from '../stores/libraryStore';
 import { usePlayerStore } from '../stores/playerStore';
 import { NormalizationSettings } from '../components/NormalizationSettings';
@@ -23,7 +23,16 @@ export function Settings() {
         getScanStatus
     } = useLibraryStore();
 
-    const { normalizationEnabled, toggleNormalization } = usePlayerStore();
+    const {
+        normalizationEnabled,
+        toggleNormalization,
+        limiterEnabled,
+        toggleLimiter,
+        limiterCeiling,
+        setLimiterCeiling,
+        targetLufs,
+        setTargetLufs,
+    } = usePlayerStore();
 
     useEffect(() => {
         if (isScanning) {
@@ -209,30 +218,132 @@ export function Settings() {
             <section className="space-y-6">
                 <div>
                     <h2 className="text-2xl font-bold">Playback</h2>
-                    <p className="text-white/50 text-sm mt-1">Audio playback settings</p>
+                    <p className="text-white/50 text-sm mt-1">Audio playback and volume settings</p>
                 </div>
-                
-                <div className="bg-white/5 rounded-xl p-6 border border-white/5">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <Volume2 className="w-8 h-8 text-pink-500" />
-                            <div>
-                                <h3 className="font-medium text-white">Volume Normalization</h3>
-                                <p className="text-white/50 text-sm mt-1">
-                                    Automatically adjust volume levels for consistent playback
-                                </p>
+
+                <div className="space-y-4">
+                    {/* Volume Normalization */}
+                    <div className="bg-white/5 rounded-xl p-6 border border-white/5">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <Volume2 className="w-8 h-8 text-pink-500" />
+                                <div>
+                                    <h3 className="font-medium text-white">Volume Normalization</h3>
+                                    <p className="text-white/50 text-sm mt-1">
+                                        Automatically adjust volume using per-track loudness data (EBU R128)
+                                    </p>
+                                </div>
                             </div>
+                            <button
+                                onClick={toggleNormalization}
+                                className={`w-12 h-6 rounded-full transition-colors relative ${
+                                    normalizationEnabled ? 'bg-pink-500' : 'bg-white/20'
+                                }`}
+                            >
+                                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                                    normalizationEnabled ? 'translate-x-7' : 'translate-x-1'
+                                }`} />
+                            </button>
                         </div>
-                        <button
-                            onClick={toggleNormalization}
-                            className={`w-12 h-6 rounded-full transition-colors relative ${
-                                normalizationEnabled ? 'bg-pink-500' : 'bg-white/20'
-                            }`}
-                        >
-                            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                                normalizationEnabled ? 'translate-x-7' : 'translate-x-1'
-                            }`} />
-                        </button>
+
+                        {/* Target LUFS Selector */}
+                        {normalizationEnabled && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="mt-4 pt-4 border-t border-white/10"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-white/80">Target Loudness</p>
+                                        <p className="text-xs text-white/40 mt-0.5">Reference level for normalization</p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {[
+                                            { value: -14, label: '-14 LUFS', desc: 'Spotify' },
+                                            { value: -16, label: '-16 LUFS', desc: 'Apple' },
+                                            { value: -23, label: '-23 LUFS', desc: 'Broadcast' },
+                                        ].map((option) => (
+                                            <button
+                                                key={option.value}
+                                                onClick={() => setTargetLufs(option.value)}
+                                                className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                                                    targetLufs === option.value
+                                                        ? 'bg-pink-500 text-white'
+                                                        : 'bg-white/10 text-white/60 hover:bg-white/20'
+                                                }`}
+                                            >
+                                                <span className="font-medium">{option.label}</span>
+                                                <span className="block text-[10px] opacity-70">{option.desc}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </div>
+
+                    {/* Hard Limiter */}
+                    <div className="bg-white/5 rounded-xl p-6 border border-white/5">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <Shield className="w-8 h-8 text-emerald-500" />
+                                <div>
+                                    <h3 className="font-medium text-white">Hard Limiter</h3>
+                                    <p className="text-white/50 text-sm mt-1">
+                                        Prevent clipping with a brick-wall ceiling (protects against loud tracks)
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={toggleLimiter}
+                                className={`w-12 h-6 rounded-full transition-colors relative ${
+                                    limiterEnabled ? 'bg-emerald-500' : 'bg-white/20'
+                                }`}
+                            >
+                                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                                    limiterEnabled ? 'translate-x-7' : 'translate-x-1'
+                                }`} />
+                            </button>
+                        </div>
+
+                        {/* Limiter Ceiling Selector */}
+                        {limiterEnabled && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="mt-4 pt-4 border-t border-white/10"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-white/80">Ceiling Level</p>
+                                        <p className="text-xs text-white/40 mt-0.5">Maximum output level (lower = more headroom)</p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {[
+                                            { value: -0.1, label: '-0.1 dB', desc: 'Tight' },
+                                            { value: -1, label: '-1 dB', desc: 'Safe' },
+                                            { value: -3, label: '-3 dB', desc: 'Relaxed' },
+                                        ].map((option) => (
+                                            <button
+                                                key={option.value}
+                                                onClick={() => setLimiterCeiling(option.value)}
+                                                className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                                                    limiterCeiling === option.value
+                                                        ? 'bg-emerald-500 text-white'
+                                                        : 'bg-white/10 text-white/60 hover:bg-white/20'
+                                                }`}
+                                            >
+                                                <span className="font-medium">{option.label}</span>
+                                                <span className="block text-[10px] opacity-70">{option.desc}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
                     </div>
                 </div>
             </section>
