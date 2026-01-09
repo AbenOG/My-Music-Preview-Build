@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useLibraryStore } from '../../stores/libraryStore';
 import { usePlayerStore } from '../../stores/playerStore';
+import { useUIStore } from '../../stores/uiStore';
 import { getArtworkUrl } from '../../api/client';
 import { cn } from '../../lib/utils';
 
@@ -28,6 +29,22 @@ export function GlobalSearch() {
   const navigate = useNavigate();
   const { tracks, albums, artists } = useLibraryStore();
   const { play } = usePlayerStore();
+  const { isSearchOpen, closeSearch } = useUIStore();
+
+  // Sync with uiStore's isSearchOpen (for mobile search button)
+  useEffect(() => {
+    if (isSearchOpen) {
+      setIsOpen(true);
+    }
+  }, [isSearchOpen]);
+
+  // Helper to close search and sync with store
+  const handleClose = () => {
+    setIsOpen(false);
+    setQuery('');
+    setResults([]);
+    closeSearch();
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -36,9 +53,7 @@ export function GlobalSearch() {
         setIsOpen(true);
       }
       if (e.key === 'Escape') {
-        setIsOpen(false);
-        setQuery('');
-        setResults([]);
+        handleClose();
       }
     };
 
@@ -55,9 +70,7 @@ export function GlobalSearch() {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-        setQuery('');
-        setResults([]);
+        handleClose();
       }
     };
 
@@ -152,10 +165,8 @@ export function GlobalSearch() {
     } else if (result.type === 'artist') {
       navigate(`/artist/${encodeURIComponent(result.data.name)}`);
     }
-    
-    setIsOpen(false);
-    setQuery('');
-    setResults([]);
+
+    handleClose();
   };
 
   const groupedResults = {
@@ -188,39 +199,41 @@ export function GlobalSearch() {
                 className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999]"
               />
 
-              <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-32 px-4">
+              <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-0 md:pt-32 px-0 md:px-4">
                 <motion.div
                   ref={containerRef}
                   initial={{ opacity: 0, scale: 0.95, y: -20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: -20 }}
-                  className="w-full max-w-2xl bg-black/95 backdrop-blur-xl rounded-xl border border-white/10 shadow-2xl overflow-hidden"
+                  className="w-full h-full md:h-auto md:max-w-2xl bg-black md:bg-black/95 md:backdrop-blur-xl md:rounded-xl border-none md:border md:border-white/10 shadow-2xl overflow-hidden flex flex-col"
                 >
-                <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
-                  <Search className="w-5 h-5 text-white/50" />
+                <div className="flex items-center gap-3 px-4 py-4 md:py-3 border-b border-white/10 pt-safe-top md:pt-3">
+                  <button
+                    onClick={handleClose}
+                    className="md:hidden p-2 -ml-2 text-white/50 hover:text-white"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                  <Search className="w-5 h-5 text-white/50 hidden md:block" />
                   <input
                     ref={inputRef}
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Search for songs, albums, or artists..."
-                    className="flex-1 bg-transparent text-white placeholder:text-white/40 outline-none"
+                    placeholder="Search songs, albums, artists..."
+                    className="flex-1 bg-transparent text-white text-lg md:text-base placeholder:text-white/40 outline-none h-10"
                   />
                   <button
-                    onClick={() => {
-                      setIsOpen(false);
-                      setQuery('');
-                      setResults([]);
-                    }}
-                    className="p-1 hover:bg-white/10 rounded transition-colors"
+                    onClick={handleClose}
+                    className="p-1 hover:bg-white/10 rounded transition-colors hidden md:block"
                   >
                     <X className="w-4 h-4 text-white/50" />
                   </button>
                 </div>
 
                 {results.length > 0 ? (
-                  <div className="max-h-[500px] overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto">
                     {groupedResults.tracks.length > 0 && (
                       <div className="px-4 py-3">
                         <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">

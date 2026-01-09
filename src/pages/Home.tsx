@@ -81,10 +81,10 @@ export function Home() {
     };
 
     return (
-        <div className="p-8 space-y-12 w-full">
+        <div className="p-4 md:p-8 space-y-8 md:space-y-12 w-full">
             {/* Hero Carousel */}
             {carouselAlbums.length > 0 ? (
-                <div className="relative w-full h-[500px] rounded-3xl overflow-hidden shadow-2xl group ring-1 ring-white/10">
+                <div className="relative w-full h-72 md:h-[500px] rounded-3xl overflow-hidden shadow-2xl group ring-1 ring-white/10">
                     <AnimatePresence mode="wait">
                         {carouselAlbums.map((album, index) => {
                             if (index !== currentSlide) return null;
@@ -107,24 +107,24 @@ export function Home() {
                                                 backgroundImage: `url(${bgImage})`,
                                             }}
                                         >
-                                            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent" />
+                                            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent md:bg-gradient-to-r" />
                                         </div>
                                     )}
                                     {!bgImage && (
                                         <div className="absolute inset-0 bg-gradient-to-r from-pink-900 to-purple-900" />
                                     )}
 
-                                    <div className="relative h-full flex items-center px-16 gap-16">
-                                        <div className="flex-1 z-10 space-y-6">
+                                    <div className="relative h-full flex items-center px-6 md:px-16 gap-8 md:gap-16">
+                                        <div className="flex-1 z-10 space-y-4 md:space-y-6">
                                             <motion.div
                                                 initial={{ y: 20, opacity: 0 }}
                                                 animate={{ y: 0, opacity: 1 }}
                                                 transition={{ delay: 0.2 }}
                                             >
-                                                <h1 className="text-7xl font-bold tracking-tight mb-2 text-white drop-shadow-xl line-clamp-2">
+                                                <h1 className="text-3xl md:text-7xl font-bold tracking-tight mb-2 text-white drop-shadow-xl line-clamp-2">
                                                     {album.name}
                                                 </h1>
-                                                <p className="text-2xl text-white/90 font-medium drop-shadow-md">
+                                                <p className="text-lg md:text-2xl text-white/90 font-medium drop-shadow-md">
                                                     {album.artist || 'Unknown Artist'}
                                                 </p>
                                             </motion.div>
@@ -133,12 +133,12 @@ export function Home() {
                                                 initial={{ y: 20, opacity: 0 }}
                                                 animate={{ y: 0, opacity: 1 }}
                                                 transition={{ delay: 0.3 }}
-                                                className="flex items-center gap-4 text-white/70"
+                                                className="flex items-center gap-2 md:gap-4 text-white/70"
                                             >
-                                                <span className="px-3 py-1 bg-white/10 rounded-full text-sm font-medium backdrop-blur-md">
+                                                <span className="px-2 md:px-3 py-1 bg-white/10 rounded-full text-xs md:text-sm font-medium backdrop-blur-md">
                                                     {album.track_count} tracks
                                                 </span>
-                                                <span className="px-3 py-1 bg-white/10 rounded-full text-sm font-medium backdrop-blur-md">
+                                                <span className="px-2 md:px-3 py-1 bg-white/10 rounded-full text-xs md:text-sm font-medium backdrop-blur-md">
                                                     {album.year || 'Unknown Year'}
                                                 </span>
                                             </motion.div>
@@ -151,9 +151,9 @@ export function Home() {
                                             >
                                                 <button
                                                     onClick={() => handlePlayAlbum(album.name)}
-                                                    className="px-10 py-4 bg-white text-black font-bold text-lg rounded-full hover:bg-gray-200 transition-colors shadow-xl flex items-center gap-3"
+                                                    className="px-6 md:px-10 py-3 md:py-4 bg-white text-black font-bold text-base md:text-lg rounded-full hover:bg-gray-200 transition-colors shadow-xl flex items-center gap-2 md:gap-3 active:scale-95"
                                                 >
-                                                    <Play className="w-6 h-6 fill-current" /> Play Now
+                                                    <Play className="w-5 h-5 md:w-6 md:h-6 fill-current" /> Play Now
                                                 </button>
                                             </motion.div>
                                         </div>
@@ -163,7 +163,7 @@ export function Home() {
                                                 initial={{ opacity: 0, scale: 0.95 }}
                                                 animate={{ opacity: 1, scale: 1 }}
                                                 transition={{ delay: 0.3, duration: 0.5 }}
-                                                className="hidden lg:block relative"
+                                                className="hidden md:block relative"
                                             >
                                                 <div className="w-[350px] h-[350px] rounded-lg shadow-2xl overflow-hidden ring-1 ring-white/10 relative z-10">
                                                     <img
@@ -200,32 +200,32 @@ export function Home() {
                     </div>
                 </div>
             ) : artists.length > 0 && (
-                <div className="relative w-full h-[400px] rounded-3xl overflow-hidden shadow-2xl group bg-gradient-to-r from-pink-800 to-purple-900 border border-white/10">
-                    <div className="absolute inset-0 z-10 flex flex-col justify-center px-12 text-white w-[60%]">
-                        <h1 className="text-6xl font-bold tracking-tight mb-4 drop-shadow-md">
+                <div className="relative w-full h-64 md:h-[400px] rounded-3xl overflow-hidden shadow-2xl group bg-gradient-to-r from-pink-800 to-purple-900 border border-white/10">
+                    <div className="absolute inset-0 z-10 flex flex-col justify-center px-6 md:px-12 text-white w-full md:w-[60%]">
+                        <h1 className="text-3xl md:text-6xl font-bold tracking-tight mb-2 md:mb-4 drop-shadow-md">
                             {tracks.length > 0 ? 'Your Music Library' : 'Welcome to Music'}
                         </h1>
-                        <p className="text-lg opacity-90 leading-relaxed max-w-lg drop-shadow-sm font-light text-white/80">
+                        <p className="text-sm md:text-lg opacity-90 leading-relaxed max-w-md md:max-w-lg drop-shadow-sm font-light text-white/80">
                             {tracks.length > 0
                                 ? `${tracks.length} tracks • ${albums.length} albums • ${artists.length} artists`
                                 : 'Add your music folders in Settings to get started'
                             }
                         </p>
-                        <div className="mt-8 flex gap-4">
+                        <div className="mt-4 md:mt-8 flex gap-3 md:gap-4">
                             {tracks.length > 0 ? (
                                 <button
                                     onClick={() => {
                                         const shuffled = [...tracks].sort(() => Math.random() - 0.5);
                                         play(shuffled[0], shuffled, 0);
                                     }}
-                                    className="px-8 py-3 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition-colors shadow-lg flex items-center gap-2"
+                                    className="px-6 md:px-8 py-2 md:py-3 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition-colors shadow-lg flex items-center gap-2 active:scale-95"
                                 >
                                     <Play className="w-4 h-4 fill-current" /> Shuffle Play
                                 </button>
                             ) : (
                                 <button
                                     onClick={() => navigate('/settings')}
-                                    className="px-8 py-3 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition-colors shadow-lg"
+                                    className="px-6 md:px-8 py-2 md:py-3 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition-colors shadow-lg active:scale-95"
                                 >
                                     Add Music Folder
                                 </button>
@@ -233,8 +233,7 @@ export function Home() {
                         </div>
                     </div>
                     {artists[0]?.artwork_path && (
-                        <div
-                            className="absolute bottom-0 right-0 w-[55%] h-[110%] bg-contain bg-no-repeat bg-bottom opacity-60 mix-blend-overlay"
+                        <div className="hidden md:block absolute bottom-0 right-0 w-[55%] h-[110%] bg-contain bg-no-repeat bg-bottom opacity-60 mix-blend-overlay"
                             style={{
                                 backgroundImage: `url(${getArtworkUrl(tracks.find(t => t.artist === artists[0]?.name)?.id || 0)})`,
                                 maskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)'
@@ -245,13 +244,13 @@ export function Home() {
             )}
 
             {tracks.length === 0 && (
-                <div className="text-center py-20 border border-dashed border-white/10 rounded-3xl bg-white/5">
-                    <Music2 className="w-20 h-20 text-white/20 mx-auto mb-6" />
-                    <h2 className="text-2xl font-bold text-white mb-2">No music yet</h2>
-                    <p className="text-white/50 mb-6">Add your music folders in Settings to start listening</p>
+                <div className="text-center py-16 md:py-20 border border-dashed border-white/10 rounded-3xl bg-white/5 px-4">
+                    <Music2 className="w-16 h-16 md:w-20 md:h-20 text-white/20 mx-auto mb-4 md:mb-6" />
+                    <h2 className="text-xl md:text-2xl font-bold text-white mb-2">No music yet</h2>
+                    <p className="text-white/50 mb-4 md:mb-6 text-sm md:text-base">Add your music folders in Settings to start listening</p>
                     <button
                         onClick={() => navigate('/settings')}
-                        className="px-6 py-3 bg-pink-600 text-white font-semibold rounded-full hover:bg-pink-500 transition-colors"
+                        className="px-5 md:px-6 py-2 md:py-3 bg-pink-600 text-white font-semibold rounded-full hover:bg-pink-500 transition-colors active:scale-95"
                     >
                         Go to Settings
                     </button>
@@ -259,20 +258,20 @@ export function Home() {
             )}
 
             {tracks.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                     {/* Quick Access Cards */}
                     <div
                         onClick={() => {
                             const shuffled = [...tracks].sort(() => Math.random() - 0.5);
                             play(shuffled[0], shuffled, 0);
                         }}
-                        className="p-6 rounded-2xl bg-gradient-to-br from-pink-900/50 to-rose-900/50 border border-white/10 cursor-pointer hover:bg-white/10 hover:border-white/20 transition-all group"
+                        className="p-5 md:p-6 rounded-2xl bg-gradient-to-br from-pink-900/50 to-rose-900/50 border border-white/10 cursor-pointer hover:bg-white/10 hover:border-white/20 transition-all group active:scale-98"
                     >
-                        <div className="w-12 h-12 rounded-full bg-pink-500/20 flex items-center justify-center mb-4 group-hover:bg-pink-500/30 transition-colors">
-                            <Shuffle className="w-6 h-6 text-pink-400 group-hover:text-pink-300" />
+                        <div className="w-11 h-11 md:w-12 md:h-12 rounded-full bg-pink-500/20 flex items-center justify-center mb-3 md:mb-4 group-hover:bg-pink-500/30 transition-colors">
+                            <Shuffle className="w-5 h-5 md:w-6 md:h-6 text-pink-400 group-hover:text-pink-300" />
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-1">Shuffle All</h3>
-                        <p className="text-white/50 text-sm">Rediscover your library</p>
+                        <h3 className="text-base md:text-lg font-bold text-white mb-1">Shuffle All</h3>
+                        <p className="text-white/50 text-xs md:text-sm">Rediscover your library</p>
                     </div>
 
                     <div
@@ -284,20 +283,20 @@ export function Home() {
                                 navigate('/liked');
                             }
                         }}
-                        className="p-6 rounded-2xl bg-gradient-to-br from-amber-900/50 to-orange-900/50 border border-white/10 cursor-pointer hover:bg-white/10 hover:border-white/20 transition-all group"
+                        className="p-5 md:p-6 rounded-2xl bg-gradient-to-br from-amber-900/50 to-orange-900/50 border border-white/10 cursor-pointer hover:bg-white/10 hover:border-white/20 transition-all group active:scale-98"
                     >
-                        <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center mb-4 group-hover:bg-amber-500/30 transition-colors">
-                            <Heart className="w-6 h-6 text-amber-400 group-hover:text-amber-300" />
+                        <div className="w-11 h-11 md:w-12 md:h-12 rounded-full bg-amber-500/20 flex items-center justify-center mb-3 md:mb-4 group-hover:bg-amber-500/30 transition-colors">
+                            <Heart className="w-5 h-5 md:w-6 md:h-6 text-amber-400 group-hover:text-amber-300" />
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-1">Favorites Mix</h3>
-                        <p className="text-white/50 text-sm">{likedTracks.length} liked songs</p>
+                        <h3 className="text-base md:text-lg font-bold text-white mb-1">Favorites Mix</h3>
+                        <p className="text-white/50 text-xs md:text-sm">{likedTracks.length} liked songs</p>
                     </div>
 
                     {/* Single Continue Listening Card occupying 2 slots if possible, or just next in grid */}
                     {continueListening.length > 0 && (
                         <div
                             onClick={() => handlePlayTrack(continueListening[0], continueListening)}
-                            className="col-span-1 md:col-span-2 relative overflow-hidden rounded-2xl border border-white/10 cursor-pointer group"
+                            className="col-span-1 sm:col-span-2 relative overflow-hidden rounded-2xl border border-white/10 cursor-pointer group min-h-[120px] md:min-h-[144px]"
                         >
                             {/* Background Image with Blur */}
                             <div
@@ -311,8 +310,8 @@ export function Home() {
                                 <div className="absolute inset-0 bg-black/60 backdrop-blur-xl" />
                             </div>
 
-                            <div className="relative z-10 p-6 flex items-center gap-6 h-full">
-                                <div className="w-20 h-20 rounded-lg shadow-lg overflow-hidden flex-shrink-0 ring-1 ring-white/10 group-hover:ring-white/30 transition-all">
+                            <div className="relative z-10 p-4 md:p-6 flex items-center gap-4 md:gap-6 h-full">
+                                <div className="w-16 h-16 md:w-20 md:h-20 rounded-lg shadow-lg overflow-hidden flex-shrink-0 ring-1 ring-white/10 group-hover:ring-white/30 transition-all">
                                     {continueListening[0].artwork_path ? (
                                         <img
                                             src={getArtworkUrl(continueListening[0].id)}
@@ -321,20 +320,20 @@ export function Home() {
                                         />
                                     ) : (
                                         <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                                            <Music2 className="w-8 h-8 text-white/20" />
+                                            <Music2 className="w-6 h-6 md:w-8 md:h-8 text-white/20" />
                                         </div>
                                     )}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <Clock className="w-4 h-4 text-pink-400" />
-                                        <span className="text-pink-400 text-xs font-bold uppercase tracking-wider">Continue Listening</span>
+                                        <Clock className="w-3 h-3 md:w-4 md:h-4 text-pink-400" />
+                                        <span className="text-pink-400 text-[10px] md:text-xs font-bold uppercase tracking-wider">Continue Listening</span>
                                     </div>
-                                    <h3 className="text-xl font-bold text-white truncate pr-4">{continueListening[0].title}</h3>
-                                    <p className="text-white/70 text-sm truncate">{continueListening[0].artist || 'Unknown Artist'}</p>
+                                    <h3 className="text-base md:text-xl font-bold text-white truncate pr-4">{continueListening[0].title}</h3>
+                                    <p className="text-white/70 text-xs md:text-sm truncate">{continueListening[0].artist || 'Unknown Artist'}</p>
                                 </div>
-                                <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 shadow-xl">
-                                    <Play className="w-5 h-5 fill-current ml-1" />
+                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white text-black flex items-center justify-center opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 shadow-xl">
+                                    <Play className="w-4 h-4 md:w-5 md:h-5 fill-current ml-1" />
                                 </div>
                             </div>
                         </div>
@@ -344,19 +343,19 @@ export function Home() {
 
             {/* Top Artists - Horizontal Scroll but cleaner */}
             {topArtists.length > 0 && (
-                <div className="space-y-6">
+                <div className="space-y-4 md:space-y-6">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-2xl font-bold text-white">Top Artists</h2>
+                        <h2 className="text-xl md:text-2xl font-bold text-white">Top Artists</h2>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 md:gap-6">
                         {topArtists.map(([artistName, data]) => (
                             <div
                                 key={artistName}
                                 onClick={() => navigate(`/artist/${encodeURIComponent(artistName)}`)}
-                                className="group cursor-pointer p-4 rounded-2xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5"
+                                className="group cursor-pointer p-3 md:p-4 rounded-2xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5 active:scale-98"
                             >
-                                <div className="aspect-square rounded-full overflow-hidden mb-4 bg-zinc-800 shadow-lg ring-2 ring-transparent group-hover:ring-pink-500/50 transition-all">
+                                <div className="aspect-square rounded-full overflow-hidden mb-3 md:mb-4 bg-zinc-800 shadow-lg ring-2 ring-transparent group-hover:ring-pink-500/50 transition-all">
                                     {data.artwork ? (
                                         <img
                                             src={getArtworkUrl(parseInt(data.artwork))}
@@ -365,12 +364,12 @@ export function Home() {
                                         />
                                     ) : (
                                         <div className="w-full h-full bg-gradient-to-br from-zinc-700 to-zinc-800 flex items-center justify-center">
-                                            <Mic2 className="w-8 h-8 text-white/20" />
+                                            <Mic2 className="w-6 h-6 md:w-8 md:h-8 text-white/20" />
                                         </div>
                                     )}
                                 </div>
-                                <p className="text-white font-semibold text-center truncate">{artistName}</p>
-                                <p className="text-white/40 text-xs text-center">{data.count} tracks</p>
+                                <p className="text-white font-semibold text-center truncate text-sm md:text-base">{artistName}</p>
+                                <p className="text-white/40 text-[10px] md:text-xs text-center">{data.count} tracks</p>
                             </div>
                         ))}
                     </div>
@@ -379,18 +378,18 @@ export function Home() {
 
             {/* Albums - Grid */}
             {displayAlbums.length > 0 && (
-                <div className="space-y-6">
+                <div className="space-y-4 md:space-y-6">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-2xl font-bold text-white">Your Albums</h2>
+                        <h2 className="text-xl md:text-2xl font-bold text-white">Your Albums</h2>
                         <button
                             onClick={() => navigate('/albums')}
-                            className="text-sm font-medium text-white/50 hover:text-white transition-colors px-4 py-2 hover:bg-white/5 rounded-full"
+                            className="text-xs md:text-sm font-medium text-white/50 hover:text-white transition-colors px-3 py-1.5 md:px-4 md:py-2 hover:bg-white/5 rounded-full"
                         >
                             View All
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
                         {displayAlbums.map((album, i) => (
                             <div
                                 key={`albums-${i}-${album.name}`}

@@ -8,7 +8,8 @@ import { getArtworkUrl } from '../../api/client';
 
 export function QueuePanel() {
     const closeQueue = useUIStore((state) => state.closeQueue);
-    const { queue, queueIndex, currentTrack, play, removeFromQueue, clearQueue } = usePlayerStore();
+    const { queue, queueIndex, play, removeFromQueue, clearQueue } = usePlayerStore();
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     const scrollRef = useRef<HTMLDivElement>(null);
     const panelRef = useRef<HTMLDivElement>(null);
 
@@ -42,24 +43,26 @@ export function QueuePanel() {
 
     return (
         <>
-            {/* Backdrop */}
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="fixed inset-0 bg-black/20 z-30"
-                onClick={closeQueue}
-            />
+            {/* Backdrop - only on desktop */}
+            {!isMobile && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="fixed inset-0 bg-black/20 z-30"
+                    onClick={closeQueue}
+                />
+            )}
 
             {/* Panel */}
             <motion.div
                 ref={panelRef}
-                initial={{ x: '100%', opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: '100%', opacity: 0 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                className="fixed right-0 top-0 bottom-24 w-80 bg-black/60 backdrop-blur-xl border-l border-white/10 z-40 flex flex-col shadow-2xl"
+                initial={isMobile ? { y: '100%' } : { x: '100%', opacity: 0 }}
+                animate={isMobile ? { y: 0 } : { x: 0, opacity: 1 }}
+                exit={isMobile ? { y: '100%' } : { x: '100%', opacity: 0 }}
+                transition={{ type: 'spring', damping: 25, stiffness: isMobile ? 200 : 300 }}
+                className={`fixed bg-black/95 backdrop-blur-xl flex flex-col shadow-2xl ${isMobile ? 'inset-0 z-[250]' : 'right-0 top-0 bottom-24 w-80 border-l border-white/10 z-40'}`}
             >
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-white/10">
@@ -123,16 +126,16 @@ export function QueuePanel() {
                                             transform: `translateY(${virtualRow.start}px)`,
                                         }}
                                     >
-                                        <div
-                                            className={`flex items-center gap-3 mx-2 p-2 rounded-lg group cursor-pointer transition-all duration-200 ${
+                                         <div
+                                            className={`flex items-center gap-3 mx-2 md:mx-2 p-2 md:p-2 rounded-lg group cursor-pointer transition-all duration-200 ${
                                                 isCurrent
                                                     ? 'bg-white/10 ring-1 ring-pink-500/50'
                                                     : 'hover:bg-white/5'
                                             } ${isPrevious ? 'opacity-40 hover:opacity-70' : ''}`}
                                             onClick={() => play(track, queue, index)}
                                         >
-                                            {/* Track number or grip */}
-                                            <div className="w-6 flex-shrink-0 text-center">
+                                             {/* Track number or grip */}
+                                            <div className="w-6 md:w-8 flex-shrink-0 text-center">
                                                 {isCurrent ? (
                                                     <div className="flex items-center justify-center gap-0.5">
                                                         <span className="w-0.5 h-3 bg-pink-500 rounded-full animate-pulse" />
@@ -148,7 +151,7 @@ export function QueuePanel() {
                                             </div>
 
                                             {/* Artwork */}
-                                            <div className={`rounded overflow-hidden flex-shrink-0 relative ${isCurrent ? 'w-12 h-12' : 'w-10 h-10'}`}>
+                                            <div className={`rounded overflow-hidden flex-shrink-0 relative ${isCurrent ? 'w-12 h-12 md:w-12 md:h-12' : 'w-10 h-10 md:w-10 md:h-10'}`}>
                                                 {track.artwork_path ? (
                                                     <img
                                                         src={getArtworkUrl(track.id)}

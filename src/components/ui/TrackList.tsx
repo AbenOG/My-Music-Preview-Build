@@ -142,7 +142,7 @@ function TrackRow({
                 </span>
                 <button 
                     onClick={onMoreClick}
-                    className="opacity-0 group-hover:opacity-100 text-white/60 hover:text-white transition-opacity"
+                    className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-white/60 hover:text-white transition-opacity p-2 -mr-2"
                 >
                     <MoreHorizontal className="w-4 h-4" />
                 </button>

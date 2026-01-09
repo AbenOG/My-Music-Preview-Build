@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Disc } from "lucide-react";
-import { motion } from "framer-motion";
 
 type CardProps = {
     children: React.ReactNode;
@@ -53,11 +52,11 @@ export function ImageCard({
                 </div>
             )}
 
-            <div className="absolute bottom-0 left-0 w-full p-4 z-20">
-                <h3 className="text-white font-bold text-lg leading-tight truncate drop-shadow-sm group-hover:text-pink-400 transition-colors">{title}</h3>
-                <p className="text-white/60 text-sm mt-1 truncate group-hover:text-white/80 transition-colors">{subtitle}</p>
+            <div className="absolute bottom-0 left-0 w-full p-3 md:p-4 z-20">
+                <h3 className="text-white font-bold text-base md:text-lg leading-tight truncate drop-shadow-sm group-hover:text-pink-400 transition-colors">{title}</h3>
+                <p className="text-white/60 text-xs md:text-sm mt-1 truncate group-hover:text-white/80 transition-colors">{subtitle}</p>
                 {price && (
-                    <span className="absolute right-4 bottom-4 text-xs font-semibold px-2 py-1 bg-white/10 backdrop-blur-md rounded-full text-white/90">
+                    <span className="absolute right-3 md:right-4 bottom-3 md:bottom-4 text-[10px] md:text-xs font-semibold px-2 py-1 bg-white/10 backdrop-blur-md rounded-full text-white/90">
                         {price}
                     </span>
                 )}

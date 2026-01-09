@@ -7,6 +7,7 @@ interface UIStore {
   searchQuery: string;
   activeModal: string | null;
   modalData: any;
+  isMobileMenuOpen: boolean;
 
   openQueue: () => void;
   closeQueue: () => void;
@@ -22,6 +23,9 @@ interface UIStore {
 
   openModal: (modal: string, data?: any) => void;
   closeModal: () => void;
+  toggleMobileMenu: () => void;
+  closeMobileMenu: () => void;
+  openMobileMenu: () => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -31,6 +35,7 @@ export const useUIStore = create<UIStore>((set) => ({
   searchQuery: '',
   activeModal: null,
   modalData: null,
+  isMobileMenuOpen: false,
 
   openQueue: () => set({ isQueueOpen: true, isLyricsOpen: false }),
   closeQueue: () => set({ isQueueOpen: false }),
@@ -46,4 +51,7 @@ export const useUIStore = create<UIStore>((set) => ({
 
   openModal: (modal: string, data?: any) => set({ activeModal: modal, modalData: data }),
   closeModal: () => set({ activeModal: null, modalData: null }),
+  toggleMobileMenu: () => set((state) => ({ isMobileMenuOpen: !state.isMobileMenuOpen })),
+  closeMobileMenu: () => set({ isMobileMenuOpen: false }),
+  openMobileMenu: () => set({ isMobileMenuOpen: true }),
 }));

@@ -22,15 +22,17 @@ export function LyricsFullScreen() {
         }
     }, [currentLineIndex]);
 
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
     return (
         <AnimatePresence>
             {isLyricsOpen && (
                 <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="fixed inset-0 z-50 bg-black"
+                    initial={isMobile ? { y: '100%' } : { opacity: 0 }}
+                    animate={isMobile ? { y: 0 } : { opacity: 1 }}
+                    exit={isMobile ? { y: '100%' } : { opacity: 0 }}
+                    transition={isMobile ? { type: 'spring', damping: 25, stiffness: 200 } : { duration: 0.3 }}
+                    className="fixed inset-0 z-[250] bg-black"
                 >
                     {currentTrack?.artwork_path && (
                         <div
@@ -46,25 +48,27 @@ export function LyricsFullScreen() {
 
                     <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80" />
 
-                    <button
-                        onClick={closeLyrics}
-                        className="absolute top-6 right-6 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-                    >
-                        <ChevronDown className="w-6 h-6 text-white" />
-                    </button>
-
-                    <div className="absolute top-6 left-6 flex items-center gap-4 z-10">
-                        {currentTrack?.artwork_path && (
-                            <img
-                                src={getArtworkUrl(currentTrack.id)}
-                                alt=""
-                                className="w-16 h-16 rounded-lg shadow-2xl"
-                            />
-                        )}
-                        <div>
-                            <h2 className="text-xl font-bold text-white">{currentTrack?.title}</h2>
-                            <p className="text-white/60">{currentTrack?.artist}</p>
+                    {/* Header with track info and close button */}
+                    <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 pt-6">
+                        <div className="flex items-center gap-3 flex-1 min-w-0 pr-4">
+                            {currentTrack?.artwork_path && (
+                                <img
+                                    src={getArtworkUrl(currentTrack.id)}
+                                    alt=""
+                                    className="w-12 h-12 rounded-lg shadow-2xl flex-shrink-0"
+                                />
+                            )}
+                            <div className="min-w-0">
+                                <h2 className="text-base font-bold text-white truncate">{currentTrack?.title}</h2>
+                                <p className="text-sm text-white/60 truncate">{currentTrack?.artist}</p>
+                            </div>
                         </div>
+                        <button
+                            onClick={closeLyrics}
+                            className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex-shrink-0"
+                        >
+                            <ChevronDown className="w-6 h-6 text-white" />
+                        </button>
                     </div>
 
                     <div

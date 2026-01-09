@@ -48,6 +48,11 @@ export function ContextMenu({
 
     useEffect(() => {
         if (isOpen && menuRef.current) {
+            // Mobile check
+            if (window.innerWidth < 768) {
+                return; // Let mobile styles take over
+            }
+
             const menu = menuRef.current;
             const rect = menu.getBoundingClientRect();
             const viewportWidth = window.innerWidth;
@@ -157,96 +162,138 @@ export function ContextMenu({
     };
 
     const liked = isLiked(track.id);
+    const isMobile = window.innerWidth < 768;
 
     return (
         <>
             <AnimatePresence>
                 {isOpen && (
-                    <motion.div
-                        ref={menuRef}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{ duration: 0.1 }}
-                        className="fixed bg-black/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl py-2 min-w-[220px] z-[100]"
-                        style={{ left: adjustedPosition.x, top: adjustedPosition.y }}
-                    >
-                        <MenuItem icon={Play} label="Play" onClick={handlePlay} />
-                        <MenuItem icon={SkipForward} label="Play Next" onClick={handlePlayNext} />
-                        <MenuItem icon={ListPlus} label="Add to Queue" onClick={handleAddToQueue} />
-                        
-                        <Divider />
-                        
-                        <MenuItem icon={Radio} label="Start Radio" onClick={handleStartRadio} />
-                        
-                        <Divider />
-                        
-                        <div 
-                            className="relative"
-                            onMouseEnter={() => setShowPlaylistSubmenu(true)}
-                            onMouseLeave={() => setShowPlaylistSubmenu(false)}
+                    <>
+                        {isMobile && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] pointer-events-auto"
+                                onClick={onClose}
+                            />
+                        )}
+                        <motion.div
+                            ref={menuRef}
+                            initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.95 }}
+                            animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1 }}
+                            exit={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.95 }}
+                            transition={{ type: isMobile ? "spring" : "tween", damping: 25, stiffness: 300, duration: 0.1 }}
+                            className={cn(
+                                "fixed bg-black/95 backdrop-blur-xl border border-white/10 shadow-2xl z-[101]",
+                                isMobile 
+                                    ? "bottom-0 left-0 right-0 rounded-t-2xl border-b-0 pb-8 pt-2" 
+                                    : "rounded-xl py-2 min-w-[220px]"
+                            )}
+                            style={!isMobile ? { left: adjustedPosition.x, top: adjustedPosition.y } : undefined}
                         >
-                            <div className="w-full px-4 py-2.5 text-left text-sm text-white/80 hover:bg-white/10 hover:text-white flex items-center gap-3 transition-colors cursor-pointer">
-                                <ListMusic className="w-4 h-4" />
-                                <span className="flex-1">Add to Playlist</span>
-                                <ChevronRight className="w-4 h-4 text-white/40" />
+                            {isMobile && (
+                                <div className="w-full flex justify-center py-2 mb-2">
+                                    <div className="w-12 h-1 bg-white/20 rounded-full" />
+                                </div>
+                            )}
+
+                            {isMobile && (
+                                <div className="px-4 mb-4 flex items-center gap-3 border-b border-white/10 pb-4">
+                                    <div className="w-12 h-12 rounded bg-zinc-800 overflow-hidden flex-shrink-0">
+                                         {/* Simple artwork placeholder if available, or just icon */}
+                                         <div className="w-full h-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
+                                            <Disc className="w-6 h-6 text-white" />
+                                         </div>
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h3 className="font-bold text-white truncate">{track.title}</h3>
+                                        <p className="text-sm text-white/50 truncate">{track.artist || 'Unknown Artist'}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <MenuItem icon={Play} label="Play" onClick={handlePlay} />
+                            <MenuItem icon={SkipForward} label="Play Next" onClick={handlePlayNext} />
+                            <MenuItem icon={ListPlus} label="Add to Queue" onClick={handleAddToQueue} />
+                            
+                            <Divider />
+                            
+                            <MenuItem icon={Radio} label="Start Radio" onClick={handleStartRadio} />
+                            
+                            <Divider />
+                            
+                            <div 
+                                className="relative"
+                                onMouseEnter={() => !isMobile && setShowPlaylistSubmenu(true)}
+                                onMouseLeave={() => !isMobile && setShowPlaylistSubmenu(false)}
+                                onClick={() => isMobile && setShowPlaylistSubmenu(!showPlaylistSubmenu)}
+                            >
+                                <div className="w-full px-4 py-2.5 text-left text-sm text-white/80 hover:bg-white/10 hover:text-white flex items-center gap-3 transition-colors cursor-pointer">
+                                    <ListMusic className="w-4 h-4" />
+                                    <span className="flex-1">Add to Playlist</span>
+                                    <ChevronRight className={cn("w-4 h-4 text-white/40 transition-transform", isMobile && showPlaylistSubmenu && "rotate-90")} />
+                                </div>
+                                
+                                <AnimatePresence>
+                                    {showPlaylistSubmenu && (
+                                        <motion.div
+                                            initial={isMobile ? { height: 0, opacity: 0 } : { opacity: 0, x: -10 }}
+                                            animate={isMobile ? { height: 'auto', opacity: 1 } : { opacity: 1, x: 0 }}
+                                            exit={isMobile ? { height: 0, opacity: 0 } : { opacity: 0, x: -10 }}
+                                            className={isMobile 
+                                                ? "overflow-hidden bg-white/5 mx-4 rounded-lg mb-2"
+                                                : "absolute left-full top-0 ml-1 bg-black/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl py-2 min-w-[180px]"
+                                            }
+                                        >
+                                            <button
+                                                onClick={handleCreatePlaylist}
+                                                className="w-full px-4 py-2.5 text-left text-sm text-pink-400 hover:bg-white/10 hover:text-pink-300 transition-colors flex items-center gap-2"
+                                            >
+                                                <Plus className="w-4 h-4" />
+                                                Create New Playlist
+                                            </button>
+                                            {playlists.length > 0 && <Divider />}
+                                            {playlists.map(playlist => (
+                                                <button
+                                                    key={playlist.id}
+                                                    onClick={() => handleAddToPlaylist(playlist.id)}
+                                                    className="w-full px-4 py-2.5 text-left text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors truncate"
+                                                >
+                                                    {playlist.name}
+                                                </button>
+                                            ))}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                             
-                            <AnimatePresence>
-                                {showPlaylistSubmenu && (
-                                    <motion.div
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: -10 }}
-                                        className="absolute left-full top-0 ml-1 bg-black/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl py-2 min-w-[180px]"
-                                    >
-                                        <button
-                                            onClick={handleCreatePlaylist}
-                                            className="w-full px-4 py-2.5 text-left text-sm text-pink-400 hover:bg-white/10 hover:text-pink-300 transition-colors flex items-center gap-2"
-                                        >
-                                            <Plus className="w-4 h-4" />
-                                            Create New Playlist
-                                        </button>
-                                        {playlists.length > 0 && <Divider />}
-                                        {playlists.map(playlist => (
-                                            <button
-                                                key={playlist.id}
-                                                onClick={() => handleAddToPlaylist(playlist.id)}
-                                                className="w-full px-4 py-2.5 text-left text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors truncate"
-                                            >
-                                                {playlist.name}
-                                            </button>
-                                        ))}
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                        
-                        <Divider />
-                        
-                        <MenuItem 
-                            icon={User} 
-                            label="Go to Artist" 
-                            onClick={handleGoToArtist}
-                            disabled={!track.artist}
-                        />
-                        <MenuItem 
-                            icon={Disc} 
-                            label="Go to Album" 
-                            onClick={handleGoToAlbum}
-                            disabled={!track.album}
-                        />
-                        
-                        <Divider />
-                        
-                        <MenuItem 
-                            icon={Heart} 
-                            label={liked ? "Remove from Liked" : "Add to Liked"}
-                            onClick={handleToggleLike}
-                            className={liked ? "text-pink-500" : ""}
-                            iconFill={liked}
-                        />
-                    </motion.div>
+                            <Divider />
+                            
+                            <MenuItem 
+                                icon={User} 
+                                label="Go to Artist" 
+                                onClick={handleGoToArtist}
+                                disabled={!track.artist}
+                            />
+                            <MenuItem 
+                                icon={Disc} 
+                                label="Go to Album" 
+                                onClick={handleGoToAlbum}
+                                disabled={!track.album}
+                            />
+                            
+                            <Divider />
+                            
+                            <MenuItem 
+                                icon={Heart} 
+                                label={liked ? "Remove from Liked" : "Add to Liked"}
+                                onClick={handleToggleLike}
+                                className={liked ? "text-pink-500" : ""}
+                                iconFill={liked}
+                            />
+                        </motion.div>
+                    </>
                 )}
             </AnimatePresence>
 

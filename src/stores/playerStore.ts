@@ -40,6 +40,7 @@ interface PlayerStore {
   radioPlaylistId: number | null;
 
   audioElement: HTMLAudioElement | null;
+  isPlayerExpanded: boolean;
 
   // Audio processing settings
   limiterEnabled: boolean;
@@ -85,6 +86,7 @@ interface PlayerStore {
   toggleLimiter: () => void;
   setLimiterCeiling: (ceiling: number) => void;
   setTargetLufs: (lufs: number) => void;
+  togglePlayerExpanded: () => void;
 }
 
 const shuffleArray = <T>(array: T[]): T[] => {
@@ -133,6 +135,7 @@ export const usePlayerStore = create<PlayerStore>()(
     limiterEnabled: true,
     limiterCeiling: -1,    // -1 dB default
     targetLufs: -14,       // Spotify standard
+    isPlayerExpanded: false,
 
     audioElement: null,
 
@@ -659,6 +662,10 @@ export const usePlayerStore = create<PlayerStore>()(
 
     setTargetLufs: (lufs: number) => {
       set({ targetLufs: lufs });
+    },
+
+    togglePlayerExpanded: () => {
+      set((state) => ({ isPlayerExpanded: !state.isPlayerExpanded }));
     },
 
     saveState: async () => {
